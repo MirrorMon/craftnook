@@ -1,10 +1,35 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '@/lib/store'
-import { Plus, Trash2, LayoutGrid, Columns2, Image as ImageIcon, Pencil, Upload, RotateCcw, Check } from 'lucide-react'
+import { 
+  Plus, Trash2, LayoutGrid, Columns2, Image as ImageIcon, Pencil, 
+  Upload, RotateCcw, Check, Loader2, GripVertical 
+} from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverlay,
+  defaultDropAnimationSideEffects,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { restrictToFirstScrollableAncestor, restrictToWindowEdges } from '@dnd-kit/modifiers'
+
 import { AddProductModal } from './add-product-modal'
 import { EditProductModal } from './edit-product-modal'
+import { ConfirmModal } from '../ui/confirm-modal'
 import type { Product, LayoutType } from '@/lib/types'
 
 const layoutIcons: Record<LayoutType, React.ReactNode> = {
@@ -20,18 +45,63 @@ const layoutLabels: Record<LayoutType, string> = {
 }
 
 export function ProductGrid() {
-  const { draftSeries, selectedSeriesId, deleteProduct, isDirty, publish, discardChanges } = useStore()
+  const { draftSeries, selectedSeriesId, deleteProduct, reorderProducts, publish, discardChanges, isSyncing } = useStore()
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [productToDelete, setProductToDelete] = useState<string | null>(null)
+  const [isPublishing, setIsPublishing] = useState(false)
   const [showPublishSuccess, setShowPublishSuccess] = useState(false)
 
-  const handlePublish = () => {
-    publish()
-    setShowPublishSuccess(true)
-    setTimeout(() => setShowPublishSuccess(false), 2000)
+  const selectedSeries = draftSeries.find(s => s.id === selectedSeriesId)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id && selectedSeries) {
+      const oldIndex = selectedSeries.products.findIndex((p) => p.id === active.id)
+      const newIndex = selectedSeries.products.findIndex((p) => p.id === over.id)
+
+      const newProducts = arrayMove(selectedSeries.products, oldIndex, newIndex)
+      reorderProducts(selectedSeriesId!, newProducts)
+    }
+  }
+
+  // Debug log to trace state updates
+  useEffect(() => {
+    if (selectedSeries) {
+      console.log(`[ProductGrid] Rendering series "${selectedSeries.title}" with ${selectedSeries.products.length} products`)
+    }
+  }, [selectedSeries])
+
+  const handlePublish = async () => {
+    if (selectedSeriesId) {
+      setIsPublishing(true)
+      const success = await publish(selectedSeriesId)
+      setIsPublishing(false)
+      
+      if (success) {
+        setShowPublishSuccess(true)
+        setTimeout(() => setShowPublishSuccess(false), 2000)
+      }
+    }
   }
   
-  const selectedSeries = draftSeries.find(s => s.id === selectedSeriesId)
+  const handleDiscard = () => {
+    if (selectedSeriesId) {
+      discardChanges(selectedSeriesId)
+    }
+  }
   
   if (!selectedSeries) {
     return (
@@ -59,38 +129,47 @@ export function ProductGrid() {
             <Plus size={18} />
             添加产品
           </button>
-          {isDirty && (
-            <button
-              onClick={discardChanges}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded hover:bg-secondary whitespace-nowrap"
-            >
-              <RotateCcw size={16} />
-              放弃
-            </button>
+          {(selectedSeries.isDirty || showPublishSuccess) && (
+            <>
+              {selectedSeries.isDirty && !showPublishSuccess && (
+                <button
+                  onClick={handleDiscard}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded hover:bg-secondary whitespace-nowrap"
+                >
+                  <RotateCcw size={16} />
+                  放弃
+                </button>
+              )}
+              <button
+                onClick={handlePublish}
+                disabled={(!selectedSeries.isDirty && !showPublishSuccess) || isPublishing || isSyncing}
+                className={`flex items-center gap-2 text-sm px-4 py-2 rounded font-medium transition-all whitespace-nowrap ${
+                  showPublishSuccess
+                    ? 'bg-green-600 text-white'
+                    : (isPublishing || isSyncing)
+                    ? 'bg-accent/50 text-accent-foreground cursor-not-allowed'
+                    : 'bg-accent text-accent-foreground hover:bg-accent/90'
+                }`}
+              >
+                {(isPublishing || isSyncing) ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {isSyncing ? '同步中...' : '发布中...'}
+                  </>
+                ) : showPublishSuccess ? (
+                  <>
+                    <Check size={16} />
+                    已发布
+                  </>
+                ) : (
+                  <>
+                    <Upload size={16} />
+                    发布
+                  </>
+                )}
+              </button>
+            </>
           )}
-          <button
-            onClick={handlePublish}
-            disabled={!isDirty}
-            className={`flex items-center gap-2 text-sm px-4 py-2 rounded font-medium transition-all whitespace-nowrap ${
-              showPublishSuccess
-                ? 'bg-green-600 text-white'
-                : isDirty
-                  ? 'bg-accent text-accent-foreground hover:bg-accent/90'
-                  : 'bg-secondary text-muted-foreground cursor-not-allowed'
-            }`}
-          >
-            {showPublishSuccess ? (
-              <>
-                <Check size={16} />
-                已发布
-              </>
-            ) : (
-              <>
-                <Upload size={16} />
-                发布
-              </>
-            )}
-          </button>
         </div>
       </div>
       
@@ -102,19 +181,30 @@ export function ProductGrid() {
             <p className="text-sm mt-1">点击上方按钮添加第一个产品</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {selectedSeries.products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onEdit={() => setEditingProduct(product)}
-                onDelete={() => deleteProduct(selectedSeriesId!, product.id)}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+            modifiers={[restrictToFirstScrollableAncestor]}
+          >
+            <SortableContext
+              items={selectedSeries.products.map(p => p.id)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {selectedSeries.products.map((product) => (
+                  <SortableProductCard
+                    key={product.id}
+                    product={product}
+                    onEdit={() => setEditingProduct(product)}
+                    onDelete={() => setProductToDelete(product.id)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
-      
       {showAddModal && (
         <AddProductModal
           seriesId={selectedSeriesId!}
@@ -129,11 +219,23 @@ export function ProductGrid() {
           onClose={() => setEditingProduct(null)}
         />
       )}
+
+      {productToDelete && (
+        <ConfirmModal
+          title="删除产品"
+          description={`确定要删除“${selectedSeries?.products.find(p => p.id === productToDelete)?.title}”吗？此操作不可撤销。`}
+          onConfirm={() => {
+            deleteProduct(selectedSeriesId!, productToDelete)
+            setProductToDelete(null)
+          }}
+          onClose={() => setProductToDelete(null)}
+        />
+      )}
     </div>
   )
 }
 
-function ProductCard({ 
+function SortableProductCard({ 
   product, 
   onEdit,
   onDelete 
@@ -142,8 +244,39 @@ function ProductCard({
   onEdit: () => void
   onDelete: () => void 
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: product.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 0,
+    opacity: isDragging ? 0.6 : 1,
+  }
+
   return (
-    <div className="group relative bg-card rounded-lg overflow-hidden border border-border hover:shadow-lg transition-shadow">
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className={`group relative bg-card rounded-lg overflow-hidden border border-border hover:shadow-lg transition-all ${
+        isDragging ? 'shadow-2xl ring-2 ring-primary' : ''
+      }`}
+    >
+      {/* Drag Handle */}
+      <div 
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 left-2 z-20 p-1.5 bg-card/80 backdrop-blur-sm rounded-md border border-border cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical size={16} className="text-muted-foreground" />
+      </div>
+
       <div 
         className="aspect-square bg-muted overflow-hidden cursor-pointer"
         onClick={onEdit}
@@ -194,3 +327,4 @@ function ProductCard({
     </div>
   )
 }
+

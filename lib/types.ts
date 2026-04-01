@@ -7,6 +7,7 @@ export interface Product {
   images: string[]
   layout: LayoutType
   seriesId: string
+  position?: number
   createdAt: string
 }
 

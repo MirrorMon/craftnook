@@ -1,53 +1,24 @@
 'use client'
 
 import { create } from 'zustand'
-import type { Series, LayoutType, BrandInfo } from './types'
+import type { Series, LayoutType, BrandInfo, Product } from './types'
+import { createClient } from './supabase/client'
+import { uploadImage } from './supabase/storage'
+import { toast } from 'sonner'
+import { publishSeriesAction, publishAllAction } from '@/app/actions/publish'
 
-const SAMPLE_SERIES: Series = {
-  id: 'sample-series-1',
-  title: '山水陶瓷系列',
-  description: '灵感源自中国传统山水画，将自然之美融入日常器皿。每一件作品都是对传统工艺的致敬与现代审美的融合。',
-  coverImage: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=800&q=80',
-  products: [
-    {
-      id: 'product-1',
-      title: '云山茶盏',
-      description: '以青瓷为底，手绘远山云雾纹样。\n\n**工艺特点**\n- 高温还原烧制\n- 手工拉坯成型\n- 天然矿物釉料',
-      images: [
-        'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=800&q=80',
-        'https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&q=80'
-      ],
-      layout: 'large' as LayoutType,
-      seriesId: 'sample-series-1',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'product-2',
-      title: '溪涧花器',
-      description: '仿若山间溪流，自然流淌的釉色变化。适合插花或作为独立装饰。',
-      images: [
-        'https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=800&q=80',
-        'https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=800&q=80'
-      ],
-      layout: 'double' as LayoutType,
-      seriesId: 'sample-series-1',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'product-3',
-      title: '松风香炉',
-      description: '镂空松枝纹样，香烟袅袅升起如松间清风。',
-      images: [
-        'https://images.unsplash.com/photo-1490312278390-ab64016e0aa9?w=800&q=80',
-        'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=800&q=80',
-        'https://images.unsplash.com/photo-1481349518771-20055b2a7b24?w=800&q=80'
-      ],
-      layout: 'gallery' as LayoutType,
-      seriesId: 'sample-series-1',
-      createdAt: new Date().toISOString()
-    }
-  ],
-  createdAt: new Date().toISOString()
+async function uploadIfNeeded(urlOrBase64: string): Promise<string> {
+  if (!urlOrBase64.startsWith('data:image/')) return urlOrBase64;
+  try {
+    const res = await fetch(urlOrBase64);
+    const blob = await res.blob();
+    const file = new File([blob], `upload_${Date.now()}.${blob.type.split('/')[1] || 'jpg'}`, { type: blob.type });
+    const uploadedUrl = await uploadImage(file);
+    return uploadedUrl || urlOrBase64;
+  } catch (err) {
+    console.error('Error converting base64 to file', err);
+    return urlOrBase64;
+  }
 }
 
 const DEFAULT_BRAND: BrandInfo = {
@@ -57,125 +28,540 @@ const DEFAULT_BRAND: BrandInfo = {
 }
 
 interface StoreState {
+  // Config
+  userId: string | null
+  username: string | null
+  isInitialized: boolean
+  isSyncing: boolean
+
   // Draft state (admin editing)
   draftSeries: Series[]
   draftBrand: BrandInfo
   selectedSeriesId: string | null
-  isDirty: boolean
-  
+  isBrandDirty: boolean
+
   // Published state (frontend display)
   publishedSeries: Series[]
   publishedBrand: BrandInfo
   lastPublished: string | null
-  
+
+  // Init
+  initStore: () => Promise<void>
+
   // Draft actions
-  addSeries: (title: string, description: string, coverImage: string) => void
-  updateSeries: (id: string, title: string, description: string, coverImage: string) => void
-  deleteSeries: (id: string) => void
+  addSeries: (title: string, description: string, coverImage: string) => Promise<void>
+  updateSeries: (id: string, title: string, description: string, coverImage: string) => Promise<void>
+  deleteSeries: (id: string) => Promise<void>
   selectSeries: (id: string | null) => void
-  addProduct: (seriesId: string, title: string, description: string, images: string[], layout: LayoutType) => void
-  updateProduct: (seriesId: string, productId: string, title: string, description: string, images: string[], layout: LayoutType) => void
-  deleteProduct: (seriesId: string, productId: string) => void
-  updateBrand: (brand: Partial<BrandInfo>) => void
-  
+  addProduct: (seriesId: string, title: string, description: string, images: string[], layout: LayoutType) => Promise<void>
+  updateProduct: (seriesId: string, productId: string, title: string, description: string, images: string[], layout: LayoutType) => Promise<void>
+  deleteProduct: (seriesId: string, productId: string) => Promise<void>
+  reorderProducts: (seriesId: string, newProducts: Product[]) => Promise<void>
+  updateBrand: (brand: Partial<BrandInfo>) => Promise<void>
+
   // Publish action
-  publish: () => void
-  discardChanges: () => void
+  publish: (seriesId?: string) => Promise<boolean>
+  discardChanges: (seriesId?: string) => void
 }
 
-export const useStore = create<StoreState>()((set) => ({
-  // Initial draft state
-  draftSeries: [SAMPLE_SERIES],
-  draftBrand: DEFAULT_BRAND,
-  selectedSeriesId: null,
-  isDirty: false,
-  
-  // Initial published state (same as draft initially)
-  publishedSeries: [SAMPLE_SERIES],
-  publishedBrand: DEFAULT_BRAND,
-  lastPublished: new Date().toISOString(),
-  
-  addSeries: (title, description, coverImage) => set((state) => ({
-    draftSeries: [...state.draftSeries, {
-      id: crypto.randomUUID(),
-      title,
-      description,
-      coverImage,
-      products: [],
-      createdAt: new Date().toISOString()
-    }],
-    isDirty: true
-  })),
-  
-  updateSeries: (id, title, description, coverImage) => set((state) => ({
-    draftSeries: state.draftSeries.map(s =>
-      s.id === id ? { ...s, title, description, coverImage } : s
-    ),
-    isDirty: true
-  })),
-  
-  deleteSeries: (id) => set((state) => ({
-    draftSeries: state.draftSeries.filter(s => s.id !== id),
-    selectedSeriesId: state.selectedSeriesId === id ? null : state.selectedSeriesId,
-    isDirty: true
-  })),
-  
-  selectSeries: (id) => set({ selectedSeriesId: id }),
-  
-  addProduct: (seriesId, title, description, images, layout) => set((state) => ({
-    draftSeries: state.draftSeries.map(s => 
-      s.id === seriesId 
-        ? { ...s, products: [...s.products, {
-            id: crypto.randomUUID(),
-            title,
-            description,
-            images,
-            layout,
-            seriesId,
-            createdAt: new Date().toISOString()
-          }]}
-        : s
-    ),
-    isDirty: true
-  })),
-  
-  updateProduct: (seriesId, productId, title, description, images, layout) => set((state) => ({
-    draftSeries: state.draftSeries.map(s =>
-      s.id === seriesId
-        ? { ...s, products: s.products.map(p =>
-            p.id === productId
-              ? { ...p, title, description, images, layout }
-              : p
-          )}
-        : s
-    ),
-    isDirty: true
-  })),
-  
-  deleteProduct: (seriesId, productId) => set((state) => ({
-    draftSeries: state.draftSeries.map(s =>
-      s.id === seriesId
-        ? { ...s, products: s.products.filter(p => p.id !== productId) }
-        : s
-    ),
-    isDirty: true
-  })),
-  
-  updateBrand: (brandUpdate) => set((state) => ({
-    draftBrand: { ...state.draftBrand, ...brandUpdate },
-    isDirty: true
-  })),
-  
-  publish: () => set((state) => ({
-    publishedSeries: JSON.parse(JSON.stringify(state.draftSeries)),
-    publishedBrand: { ...state.draftBrand },
-    lastPublished: new Date().toISOString(),
-    isDirty: false
-  })),
-  
-  discardChanges: () => set((state) => ({
-    draftSeries: JSON.parse(JSON.stringify(state.publishedSeries)),
-    draftBrand: { ...state.publishedBrand },
-    isDirty: false
-  }))
-}))
+export const useStore = create<StoreState>()((set, get) => {
+  const supabase = createClient()
+
+  return {
+    userId: null,
+    username: null,
+    isInitialized: false,
+    isSyncing: false,
+    draftSeries: [],
+    draftBrand: DEFAULT_BRAND,
+    selectedSeriesId: null,
+    isBrandDirty: false,
+
+    publishedSeries: [],
+    publishedBrand: DEFAULT_BRAND,
+    lastPublished: null,
+
+    initStore: async () => {
+      if (get().isInitialized) return
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const userId = user.id
+
+      // Fetch Profile for Username
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', userId)
+        .single()
+
+      const username = profileData?.username || null
+
+      // Fetch Brand
+      const { data: brandData } = await supabase
+        .from('brand_info')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      const brand = brandData ? {
+        name: brandData.name,
+        logo: brandData.logo || '',
+        description: brandData.description || ''
+      } : DEFAULT_BRAND
+
+      // Fetch Series
+      const { data: seriesData } = await supabase
+        .from('series')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      // Fetch Products
+      const { data: productsData } = await supabase
+        .from('products')
+        .select('*')
+        .eq('user_id', userId)
+        .order('position', { ascending: true })
+        .order('created_at', { ascending: true })
+
+      const parsedSeries: Series[] = (seriesData || []).map(s => {
+        const productsOfSeries = (productsData || []).filter(p => p.series_id === s.id).map(p => ({
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          images: p.images || [],
+          layout: p.layout as LayoutType,
+          seriesId: p.series_id,
+          position: p.position,
+          createdAt: p.created_at
+        }))
+
+        return {
+          id: s.id,
+          title: s.title,
+          description: s.description || '',
+          coverImage: s.cover_image || '',
+          products: productsOfSeries,
+          createdAt: s.created_at,
+          lastPublished: s.last_published_at,
+          isDirty: !s.is_published // If not published, effectively dirty/draft
+        }
+      })
+
+      const currentSelectedId = get().selectedSeriesId
+      const newSelectedId = (parsedSeries.some(s => s.id === currentSelectedId))
+        ? currentSelectedId
+        : (parsedSeries[0]?.id || null)
+
+      set({
+        userId,
+        username,
+        isInitialized: true,
+        draftSeries: parsedSeries,
+        publishedSeries: parsedSeries.filter(s => !s.isDirty),
+        draftBrand: brand,
+        publishedBrand: brand,
+        selectedSeriesId: newSelectedId,
+        isSyncing: false
+      })
+
+      // @ts-ignore - Expose for debugging
+      window.checkStore = () => {
+        const state = get()
+        console.log('[Store Debug] Current State:', {
+          selectedId: state.selectedSeriesId,
+          draftSeries: state.draftSeries.map(s => ({
+            id: s.id,
+            title: s.title,
+            productCount: s.products.length,
+            products: s.products
+          }))
+        })
+      }
+    },
+
+    addSeries: async (title, description, coverImage) => {
+      const state = get()
+      if (!state.userId) return
+
+      const id = crypto.randomUUID()
+      const newSeries = {
+        id,
+        title,
+        description,
+        coverImage,
+        products: [],
+        createdAt: new Date().toISOString(),
+        lastPublished: null,
+        isDirty: true
+      }
+
+      set({ isSyncing: true })
+
+      try {
+        const uploadedCover = await uploadIfNeeded(coverImage)
+
+        const { error } = await supabase.from('series').insert({
+          id,
+          user_id: state.userId,
+          title,
+          description,
+          cover_image: uploadedCover,
+          is_published: false
+        })
+        console.time('addSeries')
+        if (error) throw error
+
+        set({
+          draftSeries: [newSeries, ...state.draftSeries],
+          selectedSeriesId: id,
+          isSyncing: false
+        })
+        console.timeEnd('addSeries')
+      } catch (err: any) {
+        set({ isSyncing: false })
+        console.error('Error adding series:', err)
+        toast.error(`添加失败: ${err.message}`)
+      }
+    },
+
+    updateSeries: async (id, title, description, coverImage) => {
+      set({ isSyncing: true })
+      try {
+        const uploadedCover = await uploadIfNeeded(coverImage)
+
+        const { error } = await supabase.from('series').update({
+          title,
+          description,
+          cover_image: uploadedCover,
+          is_published: false
+        }).eq('id', id)
+
+        if (error) throw error
+
+        set((state) => ({
+          draftSeries: state.draftSeries.map(s =>
+            s.id === id ? { ...s, title, description, coverImage: uploadedCover, isDirty: true } : s
+          ),
+          isSyncing: false
+        }))
+      } catch (err: any) {
+        set({ isSyncing: false })
+        console.error('Error updating series:', err)
+        toast.error(`更新失败: ${err.message}`)
+      }
+    },
+
+    deleteSeries: async (id) => {
+      set({ isSyncing: true })
+      try {
+        const { error } = await supabase.from('series').delete().eq('id', id)
+        if (error) throw error
+
+        set((state) => ({
+          draftSeries: state.draftSeries.filter(s => s.id !== id),
+          publishedSeries: state.publishedSeries.filter(s => s.id !== id),
+          selectedSeriesId: state.selectedSeriesId === id ? null : state.selectedSeriesId,
+          isSyncing: false
+        }))
+      } catch (err: any) {
+        set({ isSyncing: false })
+        console.error('Error deleting series:', err)
+        toast.error(`删除失败: ${err.message}`)
+      }
+    },
+
+    selectSeries: (id) => set({ selectedSeriesId: id }),
+
+    addProduct: async (seriesId, title, description, images, layout) => {
+      const state = get()
+      if (!state.userId) return
+
+      set({ isSyncing: true })
+      try {
+        console.log('[Store] Adding product to series:', seriesId)
+        const id = crypto.randomUUID()
+        const uploadedImages = await Promise.all(images.map(uploadIfNeeded))
+        console.log('[Store] Images uploaded:', uploadedImages.length)
+
+        // 1. 先更新系列为未发布状态
+        await supabase.from('series').update({ is_published: false }).eq('id', seriesId)
+
+        const currentProducts = state.draftSeries.find(s => s.id === seriesId)?.products || []
+        const position = currentProducts.length
+
+        const { error } = await supabase.from('products').insert({
+          id,
+          series_id: seriesId,
+          user_id: state.userId,
+          title,
+          description,
+          images: uploadedImages,
+          layout,
+          position
+        })
+
+        if (error) {
+          console.error('[Store] Supabase insert error:', error)
+          throw error
+        }
+
+        console.log('[Store] Product inserted to DB, ID:', id)
+
+        const newProduct: Product = {
+          id,
+          title,
+          description,
+          images: uploadedImages,
+          layout,
+          seriesId,
+          position,
+          createdAt: new Date().toISOString()
+        }
+
+        set((state) => ({
+          draftSeries: state.draftSeries.map(s =>
+            s.id === seriesId
+              ? { ...s, isDirty: true, products: [...s.products, newProduct] }
+              : s
+          ),
+          isSyncing: false
+        }))
+        console.log('[Store] Local state updated with new product')
+        toast.success('产品添加成功')
+      } catch (err: any) {
+        console.error('[Store] Error in addProduct:', err)
+        set({ isSyncing: false })
+        toast.error(`添加产品失败: ${err.message}`)
+      }
+    },
+
+    updateProduct: async (seriesId, productId, title, description, images, layout) => {
+      set({ isSyncing: true })
+      try {
+        const uploadedImages = await Promise.all(images.map(uploadIfNeeded))
+
+        // 1. 先更新系列为未发布状态
+        await supabase.from('series').update({ is_published: false }).eq('id', seriesId)
+
+        // 2. 更新产品
+        const { error } = await supabase.from('products').update({
+          title,
+          description,
+          images: uploadedImages,
+          layout
+        }).eq('id', productId)
+
+        if (error) throw error
+
+        const existingProduct = get().draftSeries.find(s => s.id === seriesId)?.products.find(p => p.id === productId)
+        const updatedProduct: Product = { 
+          id: productId, 
+          title, 
+          description, 
+          images: uploadedImages, 
+          layout, 
+          seriesId, 
+          position: existingProduct?.position,
+          createdAt: existingProduct?.createdAt || new Date().toISOString() 
+        }
+
+        set((state) => ({
+          draftSeries: state.draftSeries.map(s =>
+            s.id === seriesId
+              ? {
+                  ...s,
+                  isDirty: true,
+                  products: s.products.map(p => p.id === productId ? updatedProduct : p)
+                }
+              : s
+          ),
+          isSyncing: false
+        }))
+        toast.success('产品更新成功')
+      } catch (err: any) {
+        set({ isSyncing: false })
+        console.error('Error updating product:', err)
+        toast.error(`更新产品失败: ${err.message}`)
+      }
+    },
+
+    deleteProduct: async (seriesId, productId) => {
+      set({ isSyncing: true })
+      try {
+        // 1. 先更新系列为未发布状态
+        await supabase.from('series').update({ is_published: false }).eq('id', seriesId)
+
+        // 2. 删除产品
+        const { error } = await supabase.from('products').delete().eq('id', productId)
+        if (error) throw error
+
+        set((state) => ({
+          draftSeries: state.draftSeries.map(s =>
+            s.id === seriesId
+              ? { ...s, isDirty: true, products: s.products.filter(p => p.id !== productId) }
+              : s
+          ),
+          isSyncing: false
+        }))
+      } catch (err: any) {
+        set({ isSyncing: false })
+        console.error('Error deleting product:', err)
+        toast.error(`删除产品失败: ${err.message}`)
+      }
+    },
+
+    reorderProducts: async (seriesId, newProducts) => {
+      // 1. 乐观更新本地状态
+      set((state) => ({
+        draftSeries: state.draftSeries.map(s =>
+          s.id === seriesId ? { ...s, products: newProducts, isDirty: true } : s
+        )
+      }))
+
+      try {
+        // 2. 先更新系列为未发布状态
+        await supabase.from('series').update({ is_published: false }).eq('id', seriesId)
+
+        // 3. 批量更新产品位置
+        // 改用 update 以获得更好的 RLS 兼容性
+        const updates = newProducts.map((p, index) => 
+          supabase
+            .from('products')
+            .update({ position: index })
+            .eq('id', p.id)
+        )
+
+        const results = await Promise.all(updates)
+        const failedUpdate = results.find(r => r.error)
+        
+        if (failedUpdate) {
+          console.error('[Store] Reorder failed for a product:', failedUpdate.error)
+          throw new Error(failedUpdate.error.message)
+        }
+      } catch (err: any) {
+        console.error('Error reordering products:', err)
+        toast.error(`排序保存失败: ${err.message || '请检查数据库权限'}`)
+      }
+    },
+
+    updateBrand: async (brandUpdate) => {
+      const state = get()
+      const newBrand = { ...state.draftBrand, ...brandUpdate }
+
+      // Update optimism
+      set({
+        draftBrand: newBrand,
+        publishedBrand: newBrand, // Sync to published as well
+        isBrandDirty: true
+      })
+
+      if (!state.userId) return
+
+      // Keep isBrandDirty true during upload so UI can show loading if we wanted
+      const uploadedLogo = newBrand.logo ? await uploadIfNeeded(newBrand.logo) : ''
+      newBrand.logo = uploadedLogo
+
+      await supabase.from('brand_info').upsert({
+        user_id: state.userId,
+        name: newBrand.name,
+        logo: newBrand.logo,
+        description: newBrand.description,
+        updated_at: new Date().toISOString()
+      })
+
+      set({
+        draftBrand: newBrand,
+        publishedBrand: newBrand,
+        isBrandDirty: false
+      })
+    },
+
+    publish: async (seriesId) => {
+      const state = get()
+      const username = state.username
+
+      try {
+        if (seriesId) {
+          // 1. 调用 Server Action 执行服务端发布和缓存刷新
+          const result = await publishSeriesAction(seriesId, username)
+
+          if (!result.success) {
+            throw new Error(result.message)
+          }
+
+          // 2. 成功后更新本地 Zustand 状态
+          const now = result.lastPublished || new Date().toISOString()
+          const targetSeries = state.draftSeries.find(s => s.id === seriesId)
+          if (!targetSeries) return false
+
+          const updatedSeries = { ...targetSeries, isDirty: false, lastPublished: now }
+
+          set({
+            draftSeries: state.draftSeries.map(s => s.id === seriesId ? updatedSeries : s),
+            publishedSeries: state.publishedSeries.some(s => s.id === seriesId)
+              ? state.publishedSeries.map(s => s.id === seriesId ? JSON.parse(JSON.stringify(updatedSeries)) : s)
+              : [...state.publishedSeries, JSON.parse(JSON.stringify(updatedSeries))]
+          })
+
+          return true
+        } else {
+          // 发布全部时也使用 Server Action
+          // 我们需要先处理品牌信息的上传（这部分还在前端，因为涉及 file 处理）
+          if (state.userId && state.isBrandDirty) {
+            const uploadedLogo = state.draftBrand.logo ? await uploadIfNeeded(state.draftBrand.logo) : ''
+            await supabase.from('brand_info').upsert({
+              user_id: state.userId,
+              name: state.draftBrand.name,
+              logo: uploadedLogo,
+              description: state.draftBrand.description,
+              updated_at: new Date().toISOString()
+            })
+          }
+
+          const result = await publishAllAction(username)
+          if (!result.success) throw new Error(result.message)
+
+          const now = result.lastPublished || new Date().toISOString()
+          const updatedDraftSeries = state.draftSeries.map(s => ({ ...s, isDirty: false, lastPublished: now }))
+
+          set({
+            draftSeries: updatedDraftSeries,
+            publishedSeries: JSON.parse(JSON.stringify(updatedDraftSeries)),
+            publishedBrand: { ...state.draftBrand },
+            isBrandDirty: false
+          })
+
+          return true
+        }
+      } catch (err: any) {
+        console.error('Publish error:', err)
+        toast.error(`发布失败: ${err.message || '未知错误'}`)
+        return false
+      }
+    },
+
+    discardChanges: (seriesId) => set((state) => {
+      if (seriesId) {
+        const originalSeries = state.publishedSeries.find(s => s.id === seriesId)
+        if (!originalSeries) {
+          return {
+            draftSeries: state.draftSeries.filter(s => s.id !== seriesId),
+            selectedSeriesId: state.selectedSeriesId === seriesId ? null : state.selectedSeriesId
+          }
+        }
+        return {
+          draftSeries: state.draftSeries.map(s => s.id === seriesId ? JSON.parse(JSON.stringify(originalSeries)) : s)
+        }
+      } else {
+        return {
+          draftSeries: JSON.parse(JSON.stringify(state.publishedSeries)),
+          draftBrand: { ...state.publishedBrand },
+          isBrandDirty: false
+        }
+      }
+    })
+  }
+})

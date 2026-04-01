@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useStore } from '@/lib/store'
 import { X, ImageIcon } from 'lucide-react'
 import type { Series } from '@/lib/types'
+import { processImageFile } from '@/lib/image-utils'
 
 interface EditSeriesModalProps {
   series: Series
@@ -20,16 +21,16 @@ export function EditSeriesModal({ series, onClose }: EditSeriesModalProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(series.coverImage)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const result = reader.result as string
+      try {
+        const result = await processImageFile(file)
         setCoverImage(result)
         setImagePreview(result)
+      } catch (err) {
+        console.error(err)
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -80,7 +81,7 @@ export function EditSeriesModal({ series, onClose }: EditSeriesModalProps) {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               onChange={handleImageChange}
               className="hidden"
             />

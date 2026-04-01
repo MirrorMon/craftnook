@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { useStore } from '@/lib/store'
 import { X, Upload, ImageIcon } from 'lucide-react'
+import { processImageFile } from '@/lib/image-utils'
 
 interface AddSeriesModalProps {
   onClose: () => void
@@ -25,16 +26,16 @@ export function AddSeriesModal({ onClose }: AddSeriesModalProps) {
     }
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const result = reader.result as string
+      try {
+        const result = await processImageFile(file)
         setCoverImage(result)
         setImagePreview(result)
+      } catch (err) {
+        console.error(err)
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -78,7 +79,7 @@ export function AddSeriesModal({ onClose }: AddSeriesModalProps) {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               onChange={handleImageChange}
               className="hidden"
             />

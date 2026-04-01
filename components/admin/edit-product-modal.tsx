@@ -2,8 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useStore } from '@/lib/store'
-import { X, Upload, Trash2, LayoutGrid, Columns2, Image as GalleryIcon } from 'lucide-react'
+import { X, Upload, Trash2, LayoutGrid, Columns2, Image as GalleryIcon, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import type { LayoutType, Product } from '@/lib/types'
+import { processImageFile } from '@/lib/image-utils'
+import { SortableImageList } from './sortable-image-list'
 
 interface EditProductModalProps {
   seriesId: string
@@ -23,19 +26,57 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
   const { updateProduct } = useStore()
   const [title, setTitle] = useState(product.title)
   const [description, setDescription] = useState(product.description)
-  const [images, setImages] = useState<string[]>(product.images)
+  const [images, setImages] = useState<{ id: string; url: string | null; isProcessing?: boolean }[]>(
+    product.images.map(url => ({ id: crypto.randomUUID(), url, isProcessing: false }))
+  )
   const [layout, setLayout] = useState<LayoutType>(product.layout)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    files.forEach(file => {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImages(prev => [...prev, reader.result as string])
+    if (files.length === 0) return
+
+    // Add placeholders immediately
+    const newItems = files.map(() => ({
+      id: crypto.randomUUID(),
+      url: null,
+      isProcessing: true
+    }))
+
+    setImages(prev => [...prev, ...newItems])
+
+    // 并发控制：最多同时处理 2 张图片
+    let fileIndex = 0;
+    const processNext = async () => {
+      if (fileIndex >= files.length) return;
+      
+      const currentIndex = fileIndex++;
+      const file = files[currentIndex];
+      const targetId = newItems[currentIndex].id;
+
+      try {
+        const result = await processImageFile(file)
+        setImages(prev => prev.map(img => 
+          img.id === targetId ? { ...img, url: result, isProcessing: false } : img
+        ))
+      } catch (err: any) {
+        console.error('Image processing error:', err)
+        toast.error(`图片处理失败: ${err.message || '未知错误'}`)
+        setImages(prev => prev.filter(img => img.id !== targetId))
+      } finally {
+        processNext();
       }
-      reader.readAsDataURL(file)
-    })
+    }
+
+    // 开启两个并发 worker
+    processNext();
+    if (files.length > 1) {
+      processNext();
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const removeImage = (index: number) => {
@@ -44,8 +85,9 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (title.trim() && images.length > 0) {
-      updateProduct(seriesId, product.id, title, description, images, layout)
+    const validImages = images.filter(img => img.url && !img.isProcessing).map(img => img.url!)
+    if (title.trim() && validImages.length > 0) {
+      updateProduct(seriesId, product.id, title, description, validImages, layout)
       onClose()
     }
   }
@@ -69,7 +111,7 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-6 flex flex-col gap-5">
           {/* Image Upload */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground">产品图片（支持多图）</label>
@@ -78,11 +120,13 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
               className="border-2 border-dashed border-border rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-secondary/50 transition-colors"
             >
               <Upload size={24} className="text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">点击或拖拽上传图片</p>
+              <p className="text-sm text-muted-foreground text-center">
+                点击或拖拽上传图片
+              </p>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 multiple
                 onChange={handleImagesChange}
                 className="hidden"
@@ -90,20 +134,11 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
             </div>
             
             {images.length > 0 && (
-              <div className="grid grid-cols-4 gap-3 mt-3">
-                {images.map((img, index) => (
-                  <div key={index} className="relative aspect-square rounded overflow-hidden group">
-                    <img src={img} alt={`预览 ${index + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute inset-0 bg-foreground/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 size={20} className="text-primary-foreground" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <SortableImageList 
+                images={images} 
+                onReorder={setImages} 
+                onRemove={removeImage} 
+              />
             )}
           </div>
           
@@ -176,7 +211,7 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
             </button>
             <button
               type="submit"
-              disabled={!title.trim() || images.length === 0}
+              disabled={!title.trim() || images.length === 0 || images.some(img => img.isProcessing)}
               className="flex-1 py-3 px-4 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               保存修改

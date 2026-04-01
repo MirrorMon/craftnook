@@ -1,16 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '@/lib/store'
-import { Plus, Trash2, Pencil } from 'lucide-react'
+import { Plus, Trash2, Pencil, Eye } from 'lucide-react'
 import { AddSeriesModal } from './add-series-modal'
 import { EditSeriesModal } from './edit-series-modal'
+import { PreviewModal } from './preview-modal'
+import { ConfirmModal } from '../ui/confirm-modal'
 import type { Series } from '@/lib/types'
+
+function ClientDate({ date }: { date: string }) {
+  const [formatted, setFormatted] = useState<string | null>(null)
+
+  useEffect(() => {
+    setFormatted(new Date(date).toLocaleString('zh-CN', { 
+      month: 'numeric', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    }))
+  }, [date])
+
+  if (!formatted) return null
+
+  return <>{formatted}</>
+}
 
 export function SeriesList() {
   const { draftSeries, selectedSeriesId, selectSeries, deleteSeries } = useStore()
   const [showModal, setShowModal] = useState(false)
   const [editingSeries, setEditingSeries] = useState<Series | null>(null)
+  const [previewingSeries, setPreviewingSeries] = useState<Series | null>(null)
+  const [seriesToDelete, setSeriesToDelete] = useState<string | null>(null)
 
   return (
     <aside className="w-72 border-r border-border bg-card flex flex-col h-full">
@@ -46,20 +67,57 @@ export function SeriesList() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium truncate">{s.title}</h3>
-                    <p className={`text-sm truncate ${
-                      selectedSeriesId === s.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                    }`}>
-                      {s.products.length} 个产品
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium truncate">{s.title}</h3>
+                      {s.isDirty && (
+                        <span className="flex-shrink-0 px-1.5 py-0.5 bg-accent/20 text-accent text-[10px] rounded-full">
+                          未发布
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <p className={`text-xs truncate ${
+                        selectedSeriesId === s.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                      }`}>
+                        {s.products.length} 个产品
+                      </p>
+                      {s.lastPublished ? (
+                        <p className={`text-[10px] truncate mt-0.5 ${
+                          selectedSeriesId === s.id ? 'text-primary-foreground/50' : 'text-muted-foreground/60'
+                        }`}>
+                          发布于: <ClientDate date={s.lastPublished} />
+                        </p>
+                      ) : (
+                        <p className={`text-[10px] truncate mt-0.5 ${
+                          selectedSeriesId === s.id ? 'text-primary-foreground/50' : 'text-muted-foreground/60'
+                        }`}>
+                          从未发布
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
+                      setPreviewingSeries(s)
+                    }}
+                    title="预览系列"
+                    className={`p-1 rounded ${
+                      selectedSeriesId === s.id 
+                        ? 'hover:bg-primary-foreground/20 text-primary-foreground' 
+                        : 'hover:bg-secondary text-muted-foreground'
+                    }`}
+                  >
+                    <Eye size={14} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
                       setEditingSeries(s)
                     }}
+                    title="编辑系列"
                     className={`p-1 rounded ${
                       selectedSeriesId === s.id 
                         ? 'hover:bg-primary-foreground/20 text-primary-foreground' 
@@ -71,8 +129,9 @@ export function SeriesList() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      deleteSeries(s.id)
+                      setSeriesToDelete(s.id)
                     }}
+                    title="删除系列"
                     className={`p-1 rounded ${
                       selectedSeriesId === s.id 
                         ? 'hover:bg-primary-foreground/20 text-primary-foreground' 
@@ -100,10 +159,26 @@ export function SeriesList() {
       
       {showModal && <AddSeriesModal onClose={() => setShowModal(false)} />}
       
+      {seriesToDelete && (
+        <ConfirmModal
+          title="删除系列"
+          description={`确定要删除“${draftSeries.find(s => s.id === seriesToDelete)?.title}”吗？这将永久删除该系列及其下的所有产品信息。`}
+          onConfirm={() => deleteSeries(seriesToDelete)}
+          onClose={() => setSeriesToDelete(null)}
+        />
+      )}
+      
       {editingSeries && (
         <EditSeriesModal 
           series={editingSeries} 
           onClose={() => setEditingSeries(null)} 
+        />
+      )}
+
+      {previewingSeries && (
+        <PreviewModal
+          series={previewingSeries}
+          onClose={() => setPreviewingSeries(null)}
         />
       )}
     </aside>

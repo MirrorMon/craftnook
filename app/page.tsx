@@ -1,179 +1,139 @@
-'use client'
-
-import { useState } from 'react'
-import { useStore } from '@/lib/store'
 import Link from 'next/link'
-import { LayoutGrid, List, Settings } from 'lucide-react'
-import type { Series } from '@/lib/types'
+import { LayoutGrid, Sparkles, Zap, Shield, ArrowRight, User } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 
-export default function HomePage() {
-  const { publishedSeries, publishedBrand } = useStore()
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+export default async function LandingPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
+  let username = ''
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', user.id)
+      .single()
+    username = profile?.username || '管理员'
+  }
   return (
-    <div className="min-h-screen bg-background">
-      {/* Brand Hero Header */}
-      <header className="border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-6">
-              {publishedBrand.logo ? (
-                <img 
-                  src={publishedBrand.logo} 
-                  alt={publishedBrand.name}
-                  className="w-20 h-20 object-contain rounded"
-                />
-              ) : (
-                <div className="w-20 h-20 bg-secondary rounded flex items-center justify-center">
-                  <span className="text-3xl font-semibold text-foreground">
-                    {publishedBrand.name.charAt(0)}
-                  </span>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Navigation */}
+      <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
+              <Sparkles className="text-primary-foreground" size={18} />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-foreground">CraftTool</span>
+          </div>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <Link 
+                href="/admin" 
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary rounded-md transition-colors"
+              >
+                <User size={16} />
+                <span>{username}</span>
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <main className="flex-1">
+        <section className="py-24 px-6">
+          <div className="max-w-4xl mx-auto text-center space-y-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium animate-fade-in">
+              <Zap size={14} className="text-yellow-500" />
+              <span>专为独立手作人打造的展示平台</span>
+            </div>
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-foreground leading-[1.1]">
+              让您的手作作品<br />
+              像艺术杂志一样精美
+            </h1>
+
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              无需设计经验，只需上传图片。为您的每一个系列作品提供沉浸式的、极具设计感的在线展示空间。
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              <Link 
+                href={user ? "/admin" : "/login"} 
+                className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground rounded-lg font-semibold text-lg hover:bg-primary/90 transition-all shadow-lg flex items-center justify-center gap-2 group"
+              >
+                立即开始创建
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section className="py-24 bg-card border-y border-border">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+              <div className="space-y-4">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                  <LayoutGrid size={24} />
                 </div>
-              )}
-              <div>
-                <h1 className="text-4xl font-semibold tracking-tight text-foreground">
-                  {publishedBrand.name}
-                </h1>
-                {publishedBrand.description && (
-                  <p className="text-muted-foreground mt-3 text-lg max-w-xl leading-relaxed">
-                    {publishedBrand.description}
-                  </p>
-                )}
+                <h3 className="text-xl font-bold">极简排版系统</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  提供大图、双列、画廊等多种杂志质感的排版方式，让您的作品展示不再千篇一律。
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                  <Sparkles size={24} />
+                </div>
+                <h3 className="text-xl font-bold">专属艺术家门户</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  拥有专属的 URL 空间，如 <code>crafttool.com/yourname</code>，成为您对外的数字名片。
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                  <Shield size={24} />
+                </div>
+                <h3 className="text-xl font-bold">安全可靠的云端存储</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  基于 Supabase 驱动，作品数据永久保存，即便在手机上也能随时管理您的展示页面。
+                </p>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Call to Action */}
+        <section className="py-24 px-6 text-center">
+          <div className="max-w-2xl mx-auto space-y-6">
+            <h2 className="text-3xl font-bold tracking-tight">准备好展示您的才华了吗？</h2>
+            <p className="text-muted-foreground text-lg">
+              加入 CraftTool，与其他手作人一起，构建属于您的美学空间。
+            </p>
             <Link 
-              href="/admin"
-              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-              title="管理后台"
+              href="/register" 
+              className="inline-flex items-center justify-center px-8 py-3 bg-foreground text-background rounded-full font-medium hover:opacity-90 transition-opacity"
             >
-              <Settings size={20} />
+              免费注册账号
             </Link>
           </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 py-12">
-        {/* View Toggle */}
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-medium text-foreground">产品系列</h2>
-          <div className="flex items-center gap-1 bg-secondary rounded p-1">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'grid' 
-                  ? 'bg-card text-foreground shadow-sm' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-              title="卡片模式"
-            >
-              <LayoutGrid size={18} />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'list' 
-                  ? 'bg-card text-foreground shadow-sm' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-              title="列表模式"
-            >
-              <List size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Series Display */}
-        {publishedSeries.length === 0 ? (
-          <div className="text-center py-24">
-            <p className="text-muted-foreground text-lg">暂无产品系列</p>
-            <Link 
-              href="/admin" 
-              className="inline-block mt-4 text-accent hover:underline"
-            >
-              前往管理后台添加
-            </Link>
-          </div>
-        ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {publishedSeries.map((s) => (
-              <SeriesCard key={s.id} series={s} />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-6">
-            {publishedSeries.map((s) => (
-              <SeriesListItem key={s.id} series={s} />
-            ))}
-          </div>
-        )}
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border mt-24">
-        <div className="max-w-6xl mx-auto px-6 py-8 text-center text-muted-foreground text-sm">
-          <p>手作工坊 · 用心制作每一件作品</p>
+      <footer className="border-t border-border bg-card py-12">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-muted rounded flex items-center justify-center">
+              <Sparkles className="text-muted-foreground" size={14} />
+            </div>
+            <span className="font-semibold text-muted-foreground">CraftTool</span>
+          </div>
+          <p className="text-sm text-muted-foreground flex items-center gap-3">
+            <span>© {new Date().getFullYear()} CraftTool. 用心记录每一份手工的温度.</span>
+            <span className="opacity-30 font-mono text-[10px]">v0.1</span>
+          </p>
         </div>
       </footer>
     </div>
-  )
-}
-
-function SeriesCard({ series }: { series: Series }) {
-  return (
-    <Link href={`/series/${series.id}`} className="group block">
-      <div className="aspect-[4/5] rounded overflow-hidden bg-muted mb-4">
-        {series.coverImage ? (
-          <img 
-            src={series.coverImage} 
-            alt={series.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            <LayoutGrid size={32} />
-          </div>
-        )}
-      </div>
-      <h3 className="text-xl font-medium text-foreground group-hover:text-accent transition-colors">
-        {series.title}
-      </h3>
-      {series.description && (
-        <p className="text-muted-foreground mt-1 line-clamp-2">{series.description}</p>
-      )}
-      <p className="text-sm text-muted-foreground mt-2">{series.products.length} 件作品</p>
-    </Link>
-  )
-}
-
-function SeriesListItem({ series }: { series: Series }) {
-  return (
-    <Link 
-      href={`/series/${series.id}`} 
-      className="group flex gap-6 p-6 bg-card rounded border border-border hover:shadow-lg transition-shadow"
-    >
-      <div className="w-32 h-32 flex-shrink-0 rounded overflow-hidden bg-muted">
-        {series.coverImage ? (
-          <img 
-            src={series.coverImage} 
-            alt={series.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            <LayoutGrid size={24} />
-          </div>
-        )}
-      </div>
-      <div className="flex-1 flex flex-col justify-center">
-        <h3 className="text-xl font-medium text-foreground group-hover:text-accent transition-colors">
-          {series.title}
-        </h3>
-        {series.description && (
-          <p className="text-muted-foreground mt-2 line-clamp-2">{series.description}</p>
-        )}
-        <p className="text-sm text-muted-foreground mt-3">{series.products.length} 件作品</p>
-      </div>
-    </Link>
   )
 }
