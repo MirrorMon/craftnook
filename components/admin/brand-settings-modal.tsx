@@ -15,24 +15,41 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
   const [name, setName] = useState(draftBrand.name)
   const [description, setDescription] = useState(draftBrand.description)
   const [logo, setLogo] = useState(draftBrand.logo)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Author fields
+  const [authorName, setAuthorName] = useState(draftBrand.authorName)
+  const [authorBio, setAuthorBio] = useState(draftBrand.authorBio || '')
+  const [authorEmail, setAuthorEmail] = useState(draftBrand.authorEmail || '')
+  const [authorCustomText, setAuthorCustomText] = useState(draftBrand.authorCustomText || '')
+  const [wechatQr, setWechatQr] = useState(draftBrand.authorWechatQr || '')
+  const [xhsQr, setXhsQr] = useState(draftBrand.authorXhsQr || '')
+
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const wechatInputRef = useRef<HTMLInputElement>(null)
+  const xhsInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (isOpen) {
       setName(draftBrand.name)
       setDescription(draftBrand.description)
       setLogo(draftBrand.logo)
+      setAuthorName(draftBrand.authorName)
+      setAuthorBio(draftBrand.authorBio || '')
+      setAuthorEmail(draftBrand.authorEmail || '')
+      setAuthorCustomText(draftBrand.authorCustomText || '')
+      setWechatQr(draftBrand.authorWechatQr || '')
+      setXhsQr(draftBrand.authorXhsQr || '')
     }
   }, [isOpen, draftBrand])
 
   if (!isOpen) return null
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
     const file = e.target.files?.[0]
     if (file) {
       try {
         const result = await processImageFile(file)
-        setLogo(result)
+        setter(result)
       } catch (err) {
         console.error(err)
       }
@@ -46,7 +63,13 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
     updateBrand({
       name: name.trim(),
       description: description.trim(),
-      logo
+      logo,
+      authorName: authorName.trim(),
+      authorBio: authorBio.trim(),
+      authorEmail: authorEmail.trim(),
+      authorCustomText: authorCustomText.trim(),
+      authorWechatQr: wechatQr,
+      authorXhsQr: xhsQr
     })
     onClose()
   }
@@ -69,87 +92,239 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
         </div>
         
         <div className="flex-1 overflow-y-auto">
-          <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-6">
-            {/* Logo Upload */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-3">
-                品牌 Logo
-              </label>
-              <div className="flex items-center gap-4">
-                {logo ? (
-                  <div className="relative w-24 h-24 rounded overflow-hidden bg-muted">
-                    <img 
-                      src={logo} 
-                      alt="Logo preview" 
-                      className="w-full h-full object-contain"
-                    />
+          <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-8">
+            {/* 品牌设置分区 */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <span className="w-1 h-5 bg-primary rounded-full"></span>
+                品牌设置
+              </h3>
+              
+              {/* Logo Upload */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-3">
+                  品牌 Logo
+                </label>
+                <div className="flex items-center gap-4">
+                  {logo ? (
+                    <div className="relative w-24 h-24 rounded overflow-hidden bg-muted border border-border">
+                      <img 
+                        src={logo} 
+                        alt="Logo preview" 
+                        className="w-full h-full object-contain"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setLogo('')}
+                        className="absolute top-1 right-1 p-1 bg-foreground/80 text-background rounded-full hover:bg-foreground transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div 
+                      onClick={() => logoInputRef.current?.click()}
+                      className="w-24 h-24 rounded border-2 border-dashed border-border hover:border-muted-foreground transition-colors cursor-pointer flex flex-col items-center justify-center gap-2 text-muted-foreground"
+                    >
+                      <ImageIcon size={24} />
+                      <span className="text-xs">上传 Logo</span>
+                    </div>
+                  )}
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*,.heic,.heif"
+                    onChange={(e) => handleImageUpload(e, setLogo)}
+                    className="hidden"
+                  />
+                  {logo && (
                     <button
                       type="button"
-                      onClick={() => setLogo('')}
-                      className="absolute top-1 right-1 p-1 bg-foreground/80 text-background rounded-full hover:bg-foreground transition-colors"
+                      onClick={() => logoInputRef.current?.click()}
+                      className="px-3 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors text-foreground"
                     >
-                      <X size={12} />
+                      更换图片
                     </button>
-                  </div>
-                ) : (
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-24 h-24 rounded border-2 border-dashed border-border hover:border-muted-foreground transition-colors cursor-pointer flex flex-col items-center justify-center gap-2 text-muted-foreground"
-                  >
-                    <ImageIcon size={24} />
-                    <span className="text-xs">上传</span>
-                  </div>
-                )}
+                  )}
+                </div>
+              </div>
+
+              {/* Brand Name */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  品牌名称 <span className="text-accent">*</span>
+                </label>
                 <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,.heic,.heif"
-                  onChange={handleLogoUpload}
-                  className="hidden"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="输入品牌名称"
+                  className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  required
                 />
-                {logo && (
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors text-foreground"
-                  >
-                    更换图片
-                  </button>
-                )}
+              </div>
+
+              {/* Brand Description */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  品牌介绍
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="输入品牌介绍..."
+                  rows={3}
+                  className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                />
               </div>
             </div>
 
-            {/* Brand Name */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                品牌名称 <span className="text-accent">*</span>
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="输入品牌名称"
-                className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                required
-              />
-            </div>
+            {/* 作者信息分区 */}
+            <div className="space-y-6 pt-6 border-t border-border">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <span className="w-1 h-5 bg-primary rounded-full"></span>
+                作者信息
+              </h3>
 
-            {/* Brand Description */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                品牌介绍
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="输入品牌介绍..."
-                rows={4}
-                className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    作者昵称
+                  </label>
+                  <input
+                    type="text"
+                    value={authorName}
+                    onChange={(e) => setAuthorName(e.target.value)}
+                    placeholder="输入作者昵称"
+                    className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    联系邮箱
+                  </label>
+                  <input
+                    type="email"
+                    value={authorEmail}
+                    onChange={(e) => setAuthorEmail(e.target.value)}
+                    placeholder="example@email.com"
+                    className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  作者简介
+                </label>
+                <textarea
+                  value={authorBio}
+                  onChange={(e) => setAuthorBio(e.target.value)}
+                  placeholder="输入作者简介..."
+                  rows={2}
+                  className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  自定义文本 (如：承接定制)
+                </label>
+                <input
+                  type="text"
+                  value={authorCustomText}
+                  onChange={(e) => setAuthorCustomText(e.target.value)}
+                  placeholder="输入自定义文本"
+                  className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
+              {/* QR Codes */}
+              <div className="grid grid-cols-2 gap-6">
+                {/* WeChat QR */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-3">
+                    微信二维码
+                  </label>
+                  <div className="flex flex-col gap-3">
+                    {wechatQr ? (
+                      <div className="relative w-full aspect-square max-w-[120px] rounded overflow-hidden bg-muted border border-border">
+                        <img 
+                          src={wechatQr} 
+                          alt="Wechat QR" 
+                          className="w-full h-full object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setWechatQr('')}
+                          className="absolute top-1 right-1 p-1 bg-foreground/80 text-background rounded-full hover:bg-foreground transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div 
+                        onClick={() => wechatInputRef.current?.click()}
+                        className="w-full aspect-square max-w-[120px] rounded border-2 border-dashed border-border hover:border-muted-foreground transition-colors cursor-pointer flex flex-col items-center justify-center gap-2 text-muted-foreground"
+                      >
+                        <Upload size={20} />
+                        <span className="text-[10px]">上传微信二维码</span>
+                      </div>
+                    )}
+                    <input
+                      ref={wechatInputRef}
+                      type="file"
+                      accept="image/*,.heic,.heif"
+                      onChange={(e) => handleImageUpload(e, setWechatQr)}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                {/* XHS QR */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-3">
+                    小红书二维码
+                  </label>
+                  <div className="flex flex-col gap-3">
+                    {xhsQr ? (
+                      <div className="relative w-full aspect-square max-w-[120px] rounded overflow-hidden bg-muted border border-border">
+                        <img 
+                          src={xhsQr} 
+                          alt="XHS QR" 
+                          className="w-full h-full object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setXhsQr('')}
+                          className="absolute top-1 right-1 p-1 bg-foreground/80 text-background rounded-full hover:bg-foreground transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div 
+                        onClick={() => xhsInputRef.current?.click()}
+                        className="w-full aspect-square max-w-[120px] rounded border-2 border-dashed border-border hover:border-muted-foreground transition-colors cursor-pointer flex flex-col items-center justify-center gap-2 text-muted-foreground"
+                      >
+                        <Upload size={20} />
+                        <span className="text-[10px]">上传小红书二维码</span>
+                      </div>
+                    )}
+                    <input
+                      ref={xhsInputRef}
+                      type="file"
+                      accept="image/*,.heic,.heif"
+                      onChange={(e) => handleImageUpload(e, setXhsQr)}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
               <button
                 type="button"
                 onClick={onClose}
@@ -159,9 +334,9 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity font-medium"
+                className="px-8 py-2.5 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity font-medium shadow-sm"
               >
-                保存
+                保存设置
               </button>
             </div>
           </form>

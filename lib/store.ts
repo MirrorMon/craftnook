@@ -470,8 +470,15 @@ export const useStore = create<StoreState>()((set, get) => {
       if (!state.userId) return
 
       // Keep isBrandDirty true during upload so UI can show loading if we wanted
-      const uploadedLogo = newBrand.logo ? await uploadIfNeeded(newBrand.logo) : ''
+      const [uploadedLogo, uploadedWechatQr, uploadedXhsQr] = await Promise.all([
+        newBrand.logo ? uploadIfNeeded(newBrand.logo) : Promise.resolve(''),
+        newBrand.authorWechatQr ? uploadIfNeeded(newBrand.authorWechatQr) : Promise.resolve(''),
+        newBrand.authorXhsQr ? uploadIfNeeded(newBrand.authorXhsQr) : Promise.resolve('')
+      ])
+      
       newBrand.logo = uploadedLogo
+      newBrand.authorWechatQr = uploadedWechatQr
+      newBrand.authorXhsQr = uploadedXhsQr
 
       await supabase.from('brand_info').upsert({
         user_id: state.userId,
@@ -528,7 +535,12 @@ export const useStore = create<StoreState>()((set, get) => {
           // 发布全部时也使用 Server Action
           // 我们需要先处理品牌信息的上传（这部分还在前端，因为涉及 file 处理）
           if (state.userId && state.isBrandDirty) {
-            const uploadedLogo = state.draftBrand.logo ? await uploadIfNeeded(state.draftBrand.logo) : ''
+            const [uploadedLogo, uploadedWechatQr, uploadedXhsQr] = await Promise.all([
+              state.draftBrand.logo ? uploadIfNeeded(state.draftBrand.logo) : Promise.resolve(''),
+              state.draftBrand.authorWechatQr ? uploadIfNeeded(state.draftBrand.authorWechatQr) : Promise.resolve(''),
+              state.draftBrand.authorXhsQr ? uploadIfNeeded(state.draftBrand.authorXhsQr) : Promise.resolve('')
+            ])
+
             await supabase.from('brand_info').upsert({
               user_id: state.userId,
               name: state.draftBrand.name,
@@ -538,9 +550,9 @@ export const useStore = create<StoreState>()((set, get) => {
               author_bio: state.draftBrand.authorBio,
               author_email: state.draftBrand.authorEmail,
               author_wechat_id: state.draftBrand.authorWechatId,
-              author_wechat_qr: state.draftBrand.authorWechatQr,
+              author_wechat_qr: uploadedWechatQr,
               author_xhs_id: state.draftBrand.authorXhsId,
-              author_xhs_qr: state.draftBrand.authorXhsQr,
+              author_xhs_qr: uploadedXhsQr,
               author_custom_text: state.draftBrand.authorCustomText,
               updated_at: new Date().toISOString()
             })
