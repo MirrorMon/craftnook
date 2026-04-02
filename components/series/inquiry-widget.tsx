@@ -1,7 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageCircle, X } from 'lucide-react'
+import { MessageCircle, X, Mail, MessageSquare, ExternalLink, QrCode } from 'lucide-react'
+import { useStore } from '@/lib/store'
+import { CopyButton } from '@/components/ui/copy-button'
+import Image from 'next/image'
+import { cn } from '@/lib/utils'
 
 export function InquiryWidget({ seriesTitle }: { seriesTitle: string }) {
   const [showInquiry, setShowInquiry] = useState(false)
@@ -10,105 +14,165 @@ export function InquiryWidget({ seriesTitle }: { seriesTitle: string }) {
     <>
       <button
         onClick={() => setShowInquiry(true)}
-        className="fixed bottom-8 right-8 group flex items-center bg-primary/20 text-primary hover:bg-primary hover:text-primary-foreground p-4 rounded-full shadow-lg transition-all duration-300 ease-in-out font-medium hover:px-6"
+        className="fixed bottom-8 right-8 group flex items-center bg-primary text-primary-foreground p-4 rounded-full shadow-lg transition-all duration-300 ease-in-out font-medium hover:px-6 z-40"
       >
         <MessageCircle size={20} className="flex-shrink-0" />
         <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-[120px] group-hover:ml-2 transition-all duration-300 ease-in-out">
-          询价咨询
+          联系作者
         </span>
       </button>
 
       {showInquiry && (
-        <InquiryModal onClose={() => setShowInquiry(false)} seriesTitle={seriesTitle} />
+        <AuthorCardModal onClose={() => setShowInquiry(false)} />
       )}
     </>
   )
 }
 
-function InquiryModal({ onClose, seriesTitle }: { onClose: () => void; seriesTitle: string }) {
-  const [name, setName] = useState('')
-  const [contact, setContact] = useState('')
-  const [message, setMessage] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitted(true)
-    setTimeout(() => {
-      onClose()
-    }, 2000)
-  }
+function AuthorCardModal({ onClose }: { onClose: () => void }) {
+  const brand = useStore((state) => state.publishedBrand)
+  const [activeQr, setActiveQr] = useState<'wechat' | 'xhs' | null>(null)
 
   return (
-    <div className="fixed inset-0 bg-foreground/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h3 className="text-xl font-semibold text-foreground">询价咨询</h3>
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="bg-card rounded-2xl shadow-2xl w-full max-w-[400px] overflow-hidden border border-border animate-in fade-in zoom-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header/Cover */}
+        <div className="h-24 bg-gradient-to-r from-primary/10 to-primary/5 relative">
           <button
             onClick={onClose}
-            className="p-1 hover:bg-secondary rounded transition-colors text-muted-foreground"
+            className="absolute top-4 right-4 p-2 hover:bg-background/50 rounded-full transition-colors text-muted-foreground z-10"
           >
             <X size={20} />
           </button>
         </div>
-        
-        {submitted ? (
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageCircle size={32} className="text-accent" />
+
+        <div className="px-6 pb-8 -mt-12 relative">
+          {/* Brand Info */}
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="w-24 h-24 rounded-full border-4 border-card overflow-hidden bg-muted mb-4 shadow-md">
+              {brand.logo ? (
+                <Image src={brand.logo} alt={brand.name} width={96} height={96} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-muted-foreground bg-secondary">
+                  {brand.name?.[0]}
+                </div>
+              )}
             </div>
-            <p className="text-lg font-medium text-foreground">感谢您的咨询</p>
-            <p className="text-muted-foreground mt-2">我们会尽快与您联系</p>
+            <h3 className="text-2xl font-bold text-foreground mb-1">{brand.authorName || brand.name}</h3>
+            {brand.authorBio && (
+              <p className="text-sm text-muted-foreground max-w-[280px] line-clamp-2">
+                {brand.authorBio}
+              </p>
+            )}
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
-            <p className="text-sm text-muted-foreground">
-              {'关于「'}{seriesTitle}{'」系列的咨询'}
-            </p>
-            
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">您的称呼</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="请输入您的称呼"
-                className="px-4 py-3 bg-input border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
-                required
-              />
+
+          {/* Contact List */}
+          <div className="space-y-3">
+            {/* WeChat */}
+            {brand.authorWechatId && (
+              <div className="group flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-transparent hover:border-primary/20 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-600">
+                    <MessageSquare size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">微信 ID</p>
+                    <p className="text-sm font-medium">{brand.authorWechatId}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {brand.authorWechatQr && (
+                    <button 
+                      onClick={() => setActiveQr(activeQr === 'wechat' ? null : 'wechat')}
+                      className="p-2 hover:bg-background rounded-lg text-muted-foreground transition-colors"
+                      title="查看二维码"
+                    >
+                      <QrCode size={18} />
+                    </button>
+                  )}
+                  <CopyButton value={brand.authorWechatId} label="微信 ID" />
+                </div>
+              </div>
+            )}
+
+            {/* Xiaohongshu */}
+            {brand.authorXhsId && (
+              <div className="group flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-transparent hover:border-primary/20 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center text-red-600">
+                    <ExternalLink size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">小红书号</p>
+                    <p className="text-sm font-medium">{brand.authorXhsId}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {brand.authorXhsQr && (
+                    <button 
+                      onClick={() => setActiveQr(activeQr === 'xhs' ? null : 'xhs')}
+                      className="p-2 hover:bg-background rounded-lg text-muted-foreground transition-colors"
+                      title="查看二维码"
+                    >
+                      <QrCode size={18} />
+                    </button>
+                  )}
+                  <CopyButton value={brand.authorXhsId} label="小红书号" />
+                </div>
+              </div>
+            )}
+
+            {/* Email */}
+            {brand.authorEmail && (
+              <div className="group flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-transparent hover:border-primary/20 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-600">
+                    <Mail size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">电子邮箱</p>
+                    <p className="text-sm font-medium">{brand.authorEmail}</p>
+                  </div>
+                </div>
+                <CopyButton value={brand.authorEmail} label="邮箱" />
+              </div>
+            )}
+          </div>
+
+          {/* Custom Text */}
+          {brand.authorCustomText && (
+            <div className="mt-8 p-4 rounded-xl bg-primary/5 border border-primary/10">
+              <p className="text-xs text-primary/80 leading-relaxed text-center italic">
+                {brand.authorCustomText}
+              </p>
             </div>
-            
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">联系方式</label>
-              <input
-                type="text"
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                placeholder="手机号 / 微信 / 邮箱"
-                className="px-4 py-3 bg-input border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
-                required
-              />
-            </div>
-            
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">咨询内容</label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="请描述您想了解的内容"
-                rows={4}
-                className="px-4 py-3 bg-input border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground resize-none"
-                required
-              />
-            </div>
-            
-            <button
-              type="submit"
-              className="w-full py-3 px-4 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors font-medium mt-2"
-            >
-              提交咨询
+          )}
+        </div>
+
+        {/* QR Code Overlay */}
+        {activeQr && (
+          <div 
+            className="absolute inset-0 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-8 z-20 animate-in fade-in duration-200"
+            onClick={() => setActiveQr(null)}
+          >
+            <button className="absolute top-4 right-4 p-2 hover:bg-secondary rounded-full">
+              <X size={20} />
             </button>
-          </form>
+            <p className="text-lg font-bold mb-6">{activeQr === 'wechat' ? '微信二维码' : '小红书二维码'}</p>
+            <div className="w-64 h-64 bg-white p-4 rounded-2xl shadow-xl relative">
+              <Image 
+                src={activeQr === 'wechat' ? brand.authorWechatQr : brand.authorXhsQr} 
+                alt="QR Code" 
+                width={256} 
+                height={256}
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <p className="mt-6 text-sm text-muted-foreground">点击任意位置返回</p>
+          </div>
         )}
       </div>
     </div>
