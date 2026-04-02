@@ -24,7 +24,8 @@ async function uploadIfNeeded(urlOrBase64: string): Promise<string> {
 const DEFAULT_BRAND: BrandInfo = {
   name: '手作工坊',
   logo: '',
-  description: '专注手工艺品创作，传承东方美学。每一件作品都承载着匠人的心血与温度，让传统工艺走进现代生活。'
+  description: '专注手工艺品创作，传承东方美学。每一件作品都承载着匠人的心血与温度，让传统工艺走进现代生活。',
+  authorName: '匠人'
 }
 
 interface StoreState {
@@ -105,10 +106,18 @@ export const useStore = create<StoreState>()((set, get) => {
         .eq('user_id', userId)
         .single()
 
-      const brand = brandData ? {
+      const brand: BrandInfo = brandData ? {
         name: brandData.name,
         logo: brandData.logo || '',
-        description: brandData.description || ''
+        description: brandData.description || '',
+        authorName: brandData.author_name || brandData.name,
+        authorBio: brandData.author_bio || '',
+        authorEmail: brandData.author_email || '',
+        authorWechatId: brandData.author_wechat_id || '',
+        authorWechatQr: brandData.author_wechat_qr || '',
+        authorXhsId: brandData.author_xhs_id || '',
+        authorXhsQr: brandData.author_xhs_qr || '',
+        authorCustomText: brandData.author_custom_text || ''
       } : DEFAULT_BRAND
 
       // Fetch Series
@@ -469,6 +478,14 @@ export const useStore = create<StoreState>()((set, get) => {
         name: newBrand.name,
         logo: newBrand.logo,
         description: newBrand.description,
+        author_name: newBrand.authorName,
+        author_bio: newBrand.authorBio,
+        author_email: newBrand.authorEmail,
+        author_wechat_id: newBrand.authorWechatId,
+        author_wechat_qr: newBrand.authorWechatQr,
+        author_xhs_id: newBrand.authorXhsId,
+        author_xhs_qr: newBrand.authorXhsQr,
+        author_custom_text: newBrand.authorCustomText,
         updated_at: new Date().toISOString()
       })
 
@@ -517,6 +534,14 @@ export const useStore = create<StoreState>()((set, get) => {
               name: state.draftBrand.name,
               logo: uploadedLogo,
               description: state.draftBrand.description,
+              author_name: state.draftBrand.authorName,
+              author_bio: state.draftBrand.authorBio,
+              author_email: state.draftBrand.authorEmail,
+              author_wechat_id: state.draftBrand.authorWechatId,
+              author_wechat_qr: state.draftBrand.authorWechatQr,
+              author_xhs_id: state.draftBrand.authorXhsId,
+              author_xhs_qr: state.draftBrand.authorXhsQr,
+              author_custom_text: state.draftBrand.authorCustomText,
               updated_at: new Date().toISOString()
             })
           }

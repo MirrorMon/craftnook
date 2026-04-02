@@ -26,6 +26,14 @@ export interface BrandInfo {
   name: string
   logo: string
   description: string
+  authorName: string
+  authorBio?: string
+  authorEmail?: string
+  authorWechatId?: string
+  authorWechatQr?: string
+  authorXhsId?: string
+  authorXhsQr?: string
+  authorCustomText?: string
 }
 
 export interface DraftState {
