@@ -124,7 +124,7 @@ export default function UnifiedAuthPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-card p-6 md:p-8 rounded-2xl border border-border shadow-xl shadow-primary/5">
+        <form onSubmit={handleSubmit} className="space-y-6 bg-card p-6 md:p-8 rounded-md border border-border shadow-xl shadow-primary/5">
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">用户名</label>
@@ -135,7 +135,7 @@ export default function UnifiedAuthPage() {
                 placeholder="例如: Admin_1"
                 required
                 disabled={isLoading}
-                className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-4 py-2 text-sm ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                className="flex h-11 w-full rounded-md border border-input bg-background/50 px-4 py-2 text-sm ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
               />
             </div>
             
@@ -148,7 +148,7 @@ export default function UnifiedAuthPage() {
                 placeholder="请输入密码"
                 required
                 disabled={isLoading}
-                className="flex h-11 w-full rounded-xl border border-input bg-background/50 px-4 py-2 text-sm ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                className="flex h-11 w-full rounded-md border border-input bg-background/50 px-4 py-2 text-sm ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
               />
             </div>
           </div>
@@ -156,7 +156,7 @@ export default function UnifiedAuthPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="group relative flex h-12 w-full items-center justify-center overflow-hidden rounded-xl bg-primary px-6 font-medium text-primary-foreground shadow-lg transition-all hover:bg-primary/90active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+            className="group relative flex h-12 w-full items-center justify-center overflow-hidden rounded-md bg-primary px-6 font-medium text-primary-foreground shadow-lg transition-all hover:bg-primary/90active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
           >
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin" />

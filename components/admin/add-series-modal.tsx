@@ -52,7 +52,7 @@ export function AddSeriesModal({ onClose }: AddSeriesModalProps) {
       className="fixed inset-0 bg-foreground/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      <div className="bg-card rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-card rounded-md shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h3 className="text-xl font-semibold text-foreground">新增系列</h3>
           <button
@@ -66,7 +66,7 @@ export function AddSeriesModal({ onClose }: AddSeriesModalProps) {
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
           <div 
             onClick={() => fileInputRef.current?.click()}
-            className="aspect-video border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-secondary/50 transition-colors overflow-hidden"
+            className="aspect-video border-2 border-dashed border-border rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-secondary/50 transition-colors overflow-hidden"
           >
             {imagePreview ? (
               <img src={imagePreview} alt="预览" className="w-full h-full object-cover" />

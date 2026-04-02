@@ -39,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className={`${cormorant.variable} font-serif antialiased`}>
+      <body className={`${cormorant.variable} font-serif antialiased overflow-x-hidden w-full`}>
         {children}
         <Analytics />
       </body>

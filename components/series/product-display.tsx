@@ -29,7 +29,7 @@ export function ProductDisplay({ product, index }: ProductDisplayProps) {
         </div>
         <div className="flex flex-col gap-6">
           {images.map((img: string, i: number) => (
-            <div key={i} className="rounded-lg overflow-hidden bg-muted/30">
+            <div key={i} className="rounded-md overflow-hidden bg-muted/30">
               <img 
                 src={img} 
                 alt={`${product.title} - 图片 ${i + 1}`}

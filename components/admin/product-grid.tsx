@@ -122,19 +122,12 @@ export function ProductGrid() {
           )}
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 py-2 px-4 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors font-medium whitespace-nowrap"
-          >
-            <Plus size={18} />
-            添加产品
-          </button>
           {(selectedSeries.isDirty || showPublishSuccess) && (
-            <>
+            <div className="flex items-center gap-3">
               {selectedSeries.isDirty && !showPublishSuccess && (
                 <button
                   onClick={handleDiscard}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded hover:bg-secondary whitespace-nowrap"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-md hover:bg-secondary whitespace-nowrap"
                 >
                   <RotateCcw size={16} />
                   放弃
@@ -143,7 +136,7 @@ export function ProductGrid() {
               <button
                 onClick={handlePublish}
                 disabled={(!selectedSeries.isDirty && !showPublishSuccess) || isPublishing || isSyncing}
-                className={`flex items-center gap-2 text-sm px-4 py-2 rounded font-medium transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 text-sm px-4 py-2 rounded-md font-medium transition-all whitespace-nowrap ${
                   showPublishSuccess
                     ? 'bg-green-600 text-white'
                     : (isPublishing || isSyncing)
@@ -168,8 +161,15 @@ export function ProductGrid() {
                   </>
                 )}
               </button>
-            </>
+            </div>
           )}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 py-2 px-4 bg-primary text-primary-foreground rounded-[4px] hover:bg-primary/90 transition-colors font-medium whitespace-nowrap"
+          >
+            <Plus size={18} />
+            添加产品
+          </button>
         </div>
       </div>
       
@@ -264,7 +264,7 @@ function SortableProductCard({
     <div 
       ref={setNodeRef}
       style={style}
-      className={`group relative bg-card rounded-lg overflow-hidden border border-border hover:shadow-lg transition-all ${
+      className={`group relative bg-card rounded-[4px] overflow-hidden border border-border hover:shadow-lg transition-all ${
         isDragging ? 'shadow-2xl ring-2 ring-primary' : ''
       }`}
     >

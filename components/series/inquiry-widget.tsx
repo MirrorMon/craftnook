@@ -1,20 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageCircle, X, Mail, MessageSquare, ExternalLink, QrCode } from 'lucide-react'
+import { MessageCircle, X, QrCode } from 'lucide-react'
 import { useStore } from '@/lib/store'
-import { CopyButton } from '@/components/ui/copy-button'
-import Image from 'next/image'
 import { cn } from '@/lib/utils'
+import type { BrandInfo } from '@/lib/types'
 
-export function InquiryWidget({ seriesTitle }: { seriesTitle: string }) {
+export function InquiryWidget({ seriesTitle, brand: initialBrand }: { seriesTitle: string, brand?: BrandInfo | null }) {
   const [showInquiry, setShowInquiry] = useState(false)
+  const publishedBrand = useStore((state) => state.publishedBrand)
+  const brand = initialBrand || publishedBrand
 
   return (
     <>
       <button
         onClick={() => setShowInquiry(true)}
-        className="fixed bottom-8 right-8 group flex items-center bg-primary text-primary-foreground p-4 rounded-full shadow-lg transition-all duration-300 ease-in-out font-medium hover:px-6 z-40"
+        className="fixed bottom-8 right-8 group flex items-center bg-primary text-primary-foreground p-4 rounded-full shadow-2xl transition-all duration-300 ease-in-out font-medium hover:px-6 z-[999] ring-2 ring-primary/20"
       >
         <MessageCircle size={20} className="flex-shrink-0" />
         <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-[120px] group-hover:ml-2 transition-all duration-300 ease-in-out">
@@ -22,158 +23,83 @@ export function InquiryWidget({ seriesTitle }: { seriesTitle: string }) {
         </span>
       </button>
 
-      {showInquiry && (
-        <AuthorCardModal onClose={() => setShowInquiry(false)} />
+      {showInquiry && brand && (
+        <AuthorCardModal onClose={() => setShowInquiry(false)} initialBrand={brand} />
       )}
     </>
   )
 }
 
-function AuthorCardModal({ onClose }: { onClose: () => void }) {
-  const brand = useStore((state) => state.publishedBrand)
-  const [activeQr, setActiveQr] = useState<'wechat' | 'xhs' | null>(null)
+function AuthorCardModal({ onClose, initialBrand }: { onClose: () => void, initialBrand?: BrandInfo | null }) {
+  const publishedBrand = useStore((state) => state.publishedBrand)
+  const brand = initialBrand || publishedBrand
+
+  if (!brand || !brand.name) return null;
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div 
-        className="bg-card rounded-2xl shadow-2xl w-full max-w-[400px] overflow-hidden border border-border animate-in fade-in zoom-in duration-200"
+        className="bg-card rounded-md shadow-2xl w-full max-w-[400px] overflow-hidden animate-in fade-in zoom-in duration-200 relative"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header/Cover */}
-        <div className="h-24 bg-gradient-to-r from-primary/10 to-primary/5 relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-background/50 rounded-full transition-colors text-muted-foreground z-10"
-          >
-            <X size={20} />
-          </button>
-        </div>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 hover:bg-secondary rounded-full transition-colors text-muted-foreground z-10"
+        >
+          <X size={20} />
+        </button>
 
-        <div className="px-6 pb-8 -mt-12 relative">
+        <div className="px-6 pb-8 pt-10 relative">
           {/* Brand Info */}
           <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-24 h-24 rounded-full border-4 border-card overflow-hidden bg-muted mb-4 shadow-md">
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-white mb-4 border border-border/50 flex items-center justify-center">
               {brand.logo ? (
-                <Image src={brand.logo} alt={brand.name} width={96} height={96} className="w-full h-full object-cover" />
+                <img src={brand.logo} alt={brand.name} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-muted-foreground bg-secondary">
+                <div className="w-full h-full flex items-center justify-center text-xl font-bold text-muted-foreground bg-secondary/30">
                   {brand.name?.[0]}
                 </div>
               )}
             </div>
             <h3 className="text-2xl font-bold text-foreground mb-1">{brand.authorName || brand.name}</h3>
             {brand.authorBio && (
-              <p className="text-sm text-muted-foreground max-w-[280px] line-clamp-2">
+              <p className="text-sm text-muted-foreground/80 max-w-[280px] line-clamp-2 leading-relaxed">
                 {brand.authorBio}
               </p>
             )}
           </div>
 
-          {/* Contact List */}
-          <div className="space-y-3">
-            {/* WeChat */}
-            {brand.authorWechatId && (
-              <div className="group flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-transparent hover:border-primary/20 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-600">
-                    <MessageSquare size={20} />
+          {/* QR Codes Section */}
+          {(brand.authorWechatQr || brand.authorXhsQr) && (
+            <div className="mt-4 flex justify-center gap-6">
+              {brand.authorWechatQr && (
+                <div className="flex flex-col items-center bg-white p-3 rounded-md border border-border/50 shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
+                  <div className="w-32 h-32 mb-3">
+                    <img src={brand.authorWechatQr} alt="Wechat QR" className="w-full h-full object-contain" />
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">微信 ID</p>
-                    <p className="text-sm font-medium">{brand.authorWechatId}</p>
-                  </div>
+                  <p className="text-sm text-muted-foreground/80 font-medium">扫码添加微信</p>
                 </div>
-                <div className="flex items-center gap-1">
-                  {brand.authorWechatQr && (
-                    <button 
-                      onClick={() => setActiveQr(activeQr === 'wechat' ? null : 'wechat')}
-                      className="p-2 hover:bg-background rounded-lg text-muted-foreground transition-colors"
-                      title="查看二维码"
-                    >
-                      <QrCode size={18} />
-                    </button>
-                  )}
-                  <CopyButton value={brand.authorWechatId} label="微信 ID" />
-                </div>
-              </div>
-            )}
-
-            {/* Xiaohongshu */}
-            {brand.authorXhsId && (
-              <div className="group flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-transparent hover:border-primary/20 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center text-red-600">
-                    <ExternalLink size={20} />
+              )}
+              {brand.authorXhsQr && (
+                <div className="flex flex-col items-center bg-white p-3 rounded-md border border-border/50 shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
+                  <div className="w-32 h-32 mb-3">
+                    <img src={brand.authorXhsQr} alt="XHS QR" className="w-full h-full object-contain" />
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">小红书号</p>
-                    <p className="text-sm font-medium">{brand.authorXhsId}</p>
-                  </div>
+                  <p className="text-sm text-muted-foreground/80 font-medium">扫码查看小红书</p>
                 </div>
-                <div className="flex items-center gap-1">
-                  {brand.authorXhsQr && (
-                    <button 
-                      onClick={() => setActiveQr(activeQr === 'xhs' ? null : 'xhs')}
-                      className="p-2 hover:bg-background rounded-lg text-muted-foreground transition-colors"
-                      title="查看二维码"
-                    >
-                      <QrCode size={18} />
-                    </button>
-                  )}
-                  <CopyButton value={brand.authorXhsId} label="小红书号" />
-                </div>
-              </div>
-            )}
-
-            {/* Email */}
-            {brand.authorEmail && (
-              <div className="group flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-transparent hover:border-primary/20 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-600">
-                    <Mail size={20} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">电子邮箱</p>
-                    <p className="text-sm font-medium">{brand.authorEmail}</p>
-                  </div>
-                </div>
-                <CopyButton value={brand.authorEmail} label="邮箱" />
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Custom Text */}
           {brand.authorCustomText && (
-            <div className="mt-8 p-4 rounded-xl bg-primary/5 border border-primary/10">
-              <p className="text-xs text-primary/80 leading-relaxed text-center italic">
+            <div className="mt-8 pt-6 border-t border-border/50">
+              <p className="text-sm text-muted-foreground/80 leading-relaxed text-left whitespace-pre-wrap">
                 {brand.authorCustomText}
               </p>
             </div>
           )}
         </div>
-
-        {/* QR Code Overlay */}
-        {activeQr && (
-          <div 
-            className="absolute inset-0 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-8 z-20 animate-in fade-in duration-200"
-            onClick={() => setActiveQr(null)}
-          >
-            <button className="absolute top-4 right-4 p-2 hover:bg-secondary rounded-full">
-              <X size={20} />
-            </button>
-            <p className="text-lg font-bold mb-6">{activeQr === 'wechat' ? '微信二维码' : '小红书二维码'}</p>
-            <div className="w-64 h-64 bg-white p-4 rounded-2xl shadow-xl relative">
-              <Image 
-                src={activeQr === 'wechat' ? brand.authorWechatQr : brand.authorXhsQr} 
-                alt="QR Code" 
-                width={256} 
-                height={256}
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <p className="mt-6 text-sm text-muted-foreground">点击任意位置返回</p>
-          </div>
-        )}
       </div>
     </div>
   )

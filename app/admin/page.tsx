@@ -92,10 +92,10 @@ export default function AdminPage() {
               </div>
               
               <div className="absolute right-0 top-full pt-2 opacity-0 translate-y-1 invisible group-hover:opacity-100 group-hover:translate-y-0 group-hover:visible transition-all duration-200 z-50">
-                <div className="bg-white border border-border shadow-xl rounded-xl overflow-hidden min-w-[140px] p-1.5">
+                <div className="bg-white border border-border shadow-xl rounded-md overflow-hidden min-w-[140px] p-1.5">
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-md transition-colors font-medium"
                   >
                     <LogOut size={16} />
                     退出登录
@@ -114,7 +114,7 @@ export default function AdminPage() {
         
         {/* Discreet Version Info */}
         <div className="absolute bottom-2 right-4 pointer-events-none">
-          <span className="text-[10px] font-mono text-muted-foreground/20">v0.1</span>
+          <span className="text-[10px] font-mono text-muted-foreground/20">v0.2</span>
         </div>
       </div>
 

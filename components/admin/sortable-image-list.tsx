@@ -53,7 +53,7 @@ function SortableImageItem({ id, url, isProcessing, index, onRemove }: SortableI
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative aspect-square rounded-lg overflow-hidden group transition-all ${
+      className={`relative aspect-square rounded-md overflow-hidden group transition-all ${
         isDragging 
           ? 'shadow-2xl ring-2 ring-primary ring-offset-2 ring-offset-background' 
           : 'border border-border'

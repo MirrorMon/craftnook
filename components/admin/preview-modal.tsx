@@ -41,7 +41,7 @@ export function PreviewModal({ series, onClose }: PreviewModalProps) {
             
             <div className="flex flex-col md:flex-row md:items-end gap-8">
               {series.coverImage && (
-                <div className="w-32 h-32 rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-border">
+                <div className="w-32 h-32 rounded-md overflow-hidden flex-shrink-0 shadow-sm border border-border">
                   <img 
                     src={series.coverImage} 
                     alt={series.title}
@@ -66,7 +66,7 @@ export function PreviewModal({ series, onClose }: PreviewModalProps) {
         {/* Products */}
         <main className="max-w-6xl mx-auto px-6 py-16">
           {!series.products || series.products.length === 0 ? (
-            <div className="text-center py-32 bg-secondary/20 rounded-xl border border-dashed border-border">
+            <div className="text-center py-32 bg-secondary/20 rounded-md border border-dashed border-border">
               <p className="text-muted-foreground text-lg">该系列暂无产品，快去添加吧！</p>
             </div>
           ) : (

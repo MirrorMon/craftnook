@@ -39,7 +39,7 @@ export function ConfirmModal({
       onClick={onClose}
     >
       <div 
-        className="bg-card rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200" 
+        className="bg-card rounded-md shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200" 
         onClick={e => e.stopPropagation()}
       >
         <div className="p-6">
@@ -60,7 +60,7 @@ export function ConfirmModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 px-4 bg-background border border-border rounded-lg hover:bg-secondary transition-colors font-semibold text-foreground text-sm"
+            className="flex-1 py-2.5 px-4 bg-background border border-border rounded-md hover:bg-secondary transition-colors font-semibold text-foreground text-sm"
           >
             {cancelText}
           </button>
@@ -70,7 +70,7 @@ export function ConfirmModal({
               onConfirm()
               onClose()
             }}
-            className={`flex-1 py-2.5 px-4 rounded-lg transition-colors font-semibold text-sm shadow-sm ${variantStyles[variant]}`}
+            className={`flex-1 py-2.5 px-4 rounded-md transition-colors font-semibold text-sm shadow-sm ${variantStyles[variant]}`}
           >
             {confirmText}
           </button>

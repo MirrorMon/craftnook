@@ -20,6 +20,8 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
   const [authorName, setAuthorName] = useState(draftBrand.authorName)
   const [authorBio, setAuthorBio] = useState(draftBrand.authorBio || '')
   const [authorEmail, setAuthorEmail] = useState(draftBrand.authorEmail || '')
+  const [authorWechatId, setAuthorWechatId] = useState(draftBrand.authorWechatId || '')
+  const [authorXhsId, setAuthorXhsId] = useState(draftBrand.authorXhsId || '')
   const [authorCustomText, setAuthorCustomText] = useState(draftBrand.authorCustomText || '')
   const [wechatQr, setWechatQr] = useState(draftBrand.authorWechatQr || '')
   const [xhsQr, setXhsQr] = useState(draftBrand.authorXhsQr || '')
@@ -36,6 +38,8 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
       setAuthorName(draftBrand.authorName)
       setAuthorBio(draftBrand.authorBio || '')
       setAuthorEmail(draftBrand.authorEmail || '')
+      setAuthorWechatId(draftBrand.authorWechatId || '')
+      setAuthorXhsId(draftBrand.authorXhsId || '')
       setAuthorCustomText(draftBrand.authorCustomText || '')
       setWechatQr(draftBrand.authorWechatQr || '')
       setXhsQr(draftBrand.authorXhsQr || '')
@@ -67,6 +71,8 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
       authorName: authorName.trim(),
       authorBio: authorBio.trim(),
       authorEmail: authorEmail.trim(),
+      authorWechatId: authorWechatId.trim(),
+      authorXhsId: authorXhsId.trim(),
       authorCustomText: authorCustomText.trim(),
       authorWechatQr: wechatQr,
       authorXhsQr: xhsQr
@@ -186,31 +192,17 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
                 作者信息
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    作者昵称
-                  </label>
-                  <input
-                    type="text"
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    placeholder="输入作者昵称"
-                    className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    联系邮箱
-                  </label>
-                  <input
-                    type="email"
-                    value={authorEmail}
-                    onChange={(e) => setAuthorEmail(e.target.value)}
-                    placeholder="example@email.com"
-                    className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  作者昵称
+                </label>
+                <input
+                  type="text"
+                  value={authorName}
+                  onChange={(e) => setAuthorName(e.target.value)}
+                  placeholder="输入作者昵称"
+                  className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
 
               <div>
@@ -228,14 +220,14 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  自定义文本 (如：承接定制)
+                  其它 (如：承接定制、工作室地址等)
                 </label>
-                <input
-                  type="text"
+                <textarea
                   value={authorCustomText}
                   onChange={(e) => setAuthorCustomText(e.target.value)}
-                  placeholder="输入自定义文本"
-                  className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  placeholder="输入其它补充信息..."
+                  rows={3}
+                  className="w-full px-4 py-3 bg-input border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                 />
               </div>
 

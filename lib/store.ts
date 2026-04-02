@@ -446,7 +446,7 @@ export const useStore = create<StoreState>()((set, get) => {
         const results = await Promise.all(updates)
         const failedUpdate = results.find(r => r.error)
         
-        if (failedUpdate) {
+        if (failedUpdate && failedUpdate.error) {
           console.error('[Store] Reorder failed for a product:', failedUpdate.error)
           throw new Error(failedUpdate.error.message)
         }

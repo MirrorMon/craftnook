@@ -56,7 +56,7 @@ export default async function UserHomePage({
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="max-w-6xl mx-auto px-6 py-6">
           <div className="flex items-start gap-8">
             {brand.logo ? (
               <div className="w-24 h-24 flex-shrink-0 rounded overflow-hidden flex items-center justify-center">
@@ -84,12 +84,12 @@ export default async function UserHomePage({
       <main className="max-w-6xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-medium text-foreground">全部发布作品</h2>
-          <div className="flex items-center gap-1 bg-gray-100/50 border border-gray-100 rounded-md p-1">
+          <div className="flex items-center gap-1 bg-[#F7F8F8] border border-border rounded-[4px] p-1">
             <Link
               href={`?view=grid`}
-              className={`p-2 rounded transition-colors ${
+              className={`p-2 rounded-[4px] transition-colors ${
                 viewMode === 'grid' 
-                  ? 'bg-card text-foreground shadow-sm' 
+                  ? 'bg-white text-foreground shadow-sm' 
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -97,15 +97,17 @@ export default async function UserHomePage({
             </Link>
             <Link
               href={`?view=list`}
-              className={`p-2 rounded transition-colors ${
+              className={`p-2 rounded-[4px] transition-colors ${
                 viewMode === 'list' 
-                  ? 'bg-card text-foreground shadow-sm' 
+                  ? 'bg-white text-foreground shadow-sm' 
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <List size={18} />
             </Link>
           </div>
+
+
         </div>
 
         {!seriesData || seriesData.length === 0 ? (
@@ -170,8 +172,9 @@ function SeriesListItem({ series, username }: { series: any, username: string })
   return (
     <Link 
       href={`/series/${series.id}`} 
-      className="group flex gap-6 p-6 bg-white rounded border border-border hover:shadow-lg transition-shadow"
+      className="group flex gap-6 p-6 bg-[#F7F8F8] rounded-[4px] hover:shadow-lg transition-shadow"
     >
+
       <div className="w-32 h-32 flex-shrink-0 rounded overflow-hidden bg-muted">
         {series.cover_image ? (
           <img 

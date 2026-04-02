@@ -98,7 +98,7 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
       onClick={onClose}
     >
       <div 
-        className="bg-card rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-card rounded-md shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-6 border-b border-border">
@@ -117,7 +117,7 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
             <label className="text-sm font-medium text-foreground">产品图片（支持多图）</label>
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-border rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-secondary/50 transition-colors"
+              className="border-2 border-dashed border-border rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-secondary/50 transition-colors"
             >
               <Upload size={24} className="text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground text-center">

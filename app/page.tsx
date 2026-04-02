@@ -59,7 +59,7 @@ export default async function LandingPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
               <Link 
                 href={user ? "/admin" : "/login"} 
-                className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground rounded-lg font-semibold text-lg hover:bg-primary/90 transition-all shadow-lg flex items-center justify-center gap-2 group"
+                className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground rounded-md font-semibold text-lg hover:bg-primary/90 transition-all shadow-lg flex items-center justify-center gap-2 group"
               >
                 立即开始创建
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
@@ -73,7 +73,7 @@ export default async function LandingPage() {
           <div className="max-w-6xl mx-auto px-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
               <div className="space-y-4">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center text-primary">
                   <LayoutGrid size={24} />
                 </div>
                 <h3 className="text-xl font-bold">极简排版系统</h3>
@@ -82,7 +82,7 @@ export default async function LandingPage() {
                 </p>
               </div>
               <div className="space-y-4">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center text-primary">
                   <Sparkles size={24} />
                 </div>
                 <h3 className="text-xl font-bold">专属艺术家门户</h3>
@@ -91,7 +91,7 @@ export default async function LandingPage() {
                 </p>
               </div>
               <div className="space-y-4">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center text-primary">
                   <Shield size={24} />
                 </div>
                 <h3 className="text-xl font-bold">安全可靠的云端存储</h3>
@@ -130,7 +130,7 @@ export default async function LandingPage() {
           </div>
           <p className="text-sm text-muted-foreground flex items-center gap-3">
             <span>© {new Date().getFullYear()} CraftTool. 用心记录每一份手工的温度.</span>
-            <span className="opacity-30 font-mono text-[10px]">v0.1</span>
+            <span className="opacity-30 font-mono text-[10px]">v0.2</span>
           </p>
         </div>
       </footer>
