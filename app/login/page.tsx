@@ -26,7 +26,8 @@ export default function UnifiedAuthPage() {
       return
     }
 
-    const email = `${cleanUsername.toLowerCase()}@crafttool.local`
+    const email = `${cleanUsername.toLowerCase()}@craftnook.local`
+    const legacyEmail = `${cleanUsername.toLowerCase()}@crafttool.local`
 
     try {
       // 1. Check if user exists in profiles
@@ -38,10 +39,20 @@ export default function UnifiedAuthPage() {
 
       if (existingProfile) {
         // --- CASE: LOGIN ---
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-          email,
+        // Try current domain first
+        let { error: loginError } = await supabase.auth.signInWithPassword({
+          email: email,
           password,
         })
+
+        // If failed, try legacy domain
+        if (loginError) {
+          const { error: legacyLoginError } = await supabase.auth.signInWithPassword({
+            email: legacyEmail,
+            password,
+          })
+          loginError = legacyLoginError
+        }
 
         if (loginError) {
           toast.error('登录失败: 密码不正确或账号异常')
@@ -112,16 +123,14 @@ export default function UnifiedAuthPage() {
 
       <div className="w-full max-w-sm space-y-8 z-10">
         <div className="text-center space-y-3">
-          <Link href="/" className="inline-flex items-center gap-2 mb-4 group hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
-              <Sparkles className="text-primary-foreground" size={18} />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-foreground">CraftTool</span>
+          <Link href="/" className="inline-flex items-center mb-4 group hover:opacity-80 transition-opacity">
+            <img 
+              src="/CraftNook_logo_login.png" 
+              alt="CraftNook Logo" 
+              className="h-22 object-contain"
+            />
           </Link>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">开启您的创作空间</h1>
-          <p className="text-muted-foreground text-sm">
-            输入用户名和密码。系统将为您自动登录或创建新账号。
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 bg-card p-6 md:p-8 rounded-md border border-border shadow-xl shadow-primary/5">
@@ -135,7 +144,7 @@ export default function UnifiedAuthPage() {
                 placeholder="例如: Admin_1"
                 required
                 disabled={isLoading}
-                className="flex h-11 w-full rounded-md border border-input bg-background/50 px-4 py-2 text-sm ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                className="flex h-11 w-full rounded-md border border-input bg-[#EDEDED] px-4 py-2 text-base ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
               />
             </div>
             
@@ -145,10 +154,10 @@ export default function UnifiedAuthPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="请输入密码"
+                placeholder="密码至少 6 位，支持字母及数字"
                 required
                 disabled={isLoading}
-                className="flex h-11 w-full rounded-md border border-input bg-background/50 px-4 py-2 text-sm ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                className="flex h-11 w-full rounded-md border border-input bg-[#EDEDED] px-4 py-2 text-base ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
               />
             </div>
           </div>
@@ -168,14 +177,13 @@ export default function UnifiedAuthPage() {
             )}
           </button>
 
-          <p className="text-center text-[12px] text-muted-foreground leading-relaxed">
-            新用户名将自动注册。已注册用户请凭密码登入。<br />
-            密码至少 6 位，支持字母及数字。
+          <p className="text-center text-sm text-muted-foreground leading-relaxed">
+            新用户名将自动注册，已注册用户请凭密码登入
           </p>
         </form>
 
         <p className="text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} CraftTool. 用心记录手工的温度.
+          © {new Date().getFullYear()} CraftNook. 用心记录手工的温度.
         </p>
       </div>
     </div>

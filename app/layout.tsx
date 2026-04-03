@@ -14,21 +14,8 @@ export const metadata: Metadata = {
   description: '精选手工艺品展示',
   generator: 'v0.app',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/CraftNook_logo_tab.png',
+    apple: '/CraftNook_logo_tab.png',
   },
 }
 

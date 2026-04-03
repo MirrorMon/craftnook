@@ -21,19 +21,22 @@ export default async function LandingPage() {
       <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
-              <Sparkles className="text-primary-foreground" size={18} />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-foreground">CraftTool</span>
+            <img 
+              src="/CraftNook_logo_Vertical.png" 
+              alt="CraftNook Logo" 
+              className="h-8 object-contain"
+            />
           </div>
           <div className="flex items-center gap-4">
             {user ? (
               <Link 
                 href="/admin" 
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary rounded-md transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-transparent hover:border-border hover:bg-secondary/50 transition-all"
               >
-                <User size={16} />
-                <span>{username}</span>
+                <div className="w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-primary/10">
+                  {username?.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-sm font-medium text-foreground">{username}</span>
               </Link>
             ) : null}
           </div>
@@ -54,7 +57,7 @@ export default async function LandingPage() {
             </h1>
 
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              无需设计经验，只需上传图片。为您的每一个系列作品提供沉浸式的、极具设计感的在线展示空间。
+              无需设计经验，只需上传图片，为您的每一个系列作品提供沉浸式的、极具设计感的在线展示空间
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
               <Link 
@@ -78,7 +81,7 @@ export default async function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold">极简排版系统</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  提供大图、双列、画廊等多种杂志质感的排版方式，让您的作品展示不再千篇一律。
+                  提供大图、双列、画廊等多种杂志质感的排版方式，让您的作品展示不再千篇一律
                 </p>
               </div>
               <div className="space-y-4">
@@ -87,7 +90,7 @@ export default async function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold">专属艺术家门户</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  拥有专属的 URL 空间，如 <code>crafttool.com/yourname</code>，成为您对外的数字名片。
+                  拥有专属个人网址，<code>craftnook.com/yourname</code> 就是你的线上名片
                 </p>
               </div>
               <div className="space-y-4">
@@ -96,7 +99,7 @@ export default async function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold">安全可靠的云端存储</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  基于 Supabase 驱动，作品数据永久保存，即便在手机上也能随时管理您的展示页面。
+                  基于 Supabase 驱动，作品数据永久保存，即便在手机上也能随时管理您的展示页面
                 </p>
               </div>
             </div>
@@ -108,7 +111,7 @@ export default async function LandingPage() {
           <div className="max-w-2xl mx-auto space-y-6">
             <h2 className="text-3xl font-bold tracking-tight">准备好展示您的才华了吗？</h2>
             <p className="text-muted-foreground text-lg">
-              加入 CraftTool，与其他手作人一起，构建属于您的美学空间。
+              加入 CraftNook，与其他手作人一起，构建属于您的美学空间
             </p>
             <Link 
               href="/register" 
@@ -126,10 +129,10 @@ export default async function LandingPage() {
             <div className="w-6 h-6 bg-muted rounded flex items-center justify-center">
               <Sparkles className="text-muted-foreground" size={14} />
             </div>
-            <span className="font-semibold text-muted-foreground">CraftTool</span>
+            <span className="font-semibold text-muted-foreground">CraftNook</span>
           </div>
           <p className="text-sm text-muted-foreground flex items-center gap-3">
-            <span>© {new Date().getFullYear()} CraftTool. 用心记录每一份手工的温度.</span>
+            <span>© {new Date().getFullYear()} CraftNook. 用心记录每一份手工的温度</span>
             <span className="opacity-30 font-mono text-[10px]">v0.2</span>
           </p>
         </div>

@@ -85,7 +85,7 @@ export function PreviewModal({ series, onClose }: PreviewModalProps) {
       <footer className="border-t border-border bg-secondary/10">
         <div className="max-w-6xl mx-auto px-6 py-12 flex items-center justify-between text-muted-foreground text-sm">
           <p>© {new Date().getFullYear()} 您的品牌名称</p>
-          <p>Powered by CraftTool</p>
+          <p>Powered by CraftNook</p>
         </div>
       </footer>
     </div>

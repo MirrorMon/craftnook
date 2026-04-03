@@ -132,7 +132,7 @@ export default async function UserHomePage({
       <footer className="border-t border-border mt-24">
         <div className="max-w-6xl mx-auto px-6 py-8 flex items-center justify-between text-muted-foreground text-sm">
           <p>© {new Date().getFullYear()} {brand.name}</p>
-          <p>Powered by CraftTool</p>
+          <p>Powered by CraftNook</p>
         </div>
       </footer>
     </div>

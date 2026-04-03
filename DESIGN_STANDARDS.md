@@ -1,6 +1,6 @@
-# CraftTool 设计规范 (Design Standards)
+# CraftNook 设计规范 (Design Standards)
 
-本指南总结了 CraftTool 项目中的视觉风格和交互规范，以便在后续迭代中保持一致性。
+本指南总结了 CraftNook 项目中的视觉风格和交互规范，以便在后续迭代中保持一致性。
 
 ## 1. 核心色彩 (Core Colors)
 
