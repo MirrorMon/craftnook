@@ -70,3 +70,45 @@ export async function publishAllAction(username: string | null) {
     return { success: false, message: err.message }
   }
 }
+
+export async function unpublishSeriesAction(seriesId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, message: '未授权' }
+
+  try {
+    const { error } = await supabase
+      .from('series')
+      .update({ is_published: false })
+      .eq('id', seriesId)
+      .eq('user_id', user.id)
+
+    if (error) throw error
+
+    revalidatePath('/', 'layout')
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, message: err.message }
+  }
+}
+
+export async function unpublishSeriesAction(seriesId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, message: '未授权' }
+
+  try {
+    const { error } = await supabase
+      .from('series')
+      .update({ is_published: false })
+      .eq('id', seriesId)
+      .eq('user_id', user.id)
+
+    if (error) throw error
+
+    revalidatePath('/', 'layout')
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, message: err.message }
+  }
+}
