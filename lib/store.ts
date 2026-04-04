@@ -3,9 +3,9 @@
 import { create } from 'zustand'
 import type { Series, LayoutType, BrandInfo, Product } from './types'
 import { createClient } from './supabase/client'
-import { uploadImage } from './supabase/storage'
+import { uploadImage, deleteImagesFromUrls } from './supabase/storage'
 import { toast } from 'sonner'
-import { publishSeriesAction, publishAllAction } from '@/app/actions/publish'
+import { publishSeriesAction, publishAllAction, unpublishSeriesAction } from '@/app/actions/publish'
 
 async function uploadIfNeeded(urlOrBase64: string): Promise<string> {
   if (!urlOrBase64.startsWith('data:image/')) return urlOrBase64;
@@ -62,6 +62,7 @@ interface StoreState {
 
   // Publish action
   publish: (seriesId?: string) => Promise<boolean>
+  unpublish: (seriesId: string) => Promise<boolean>
   discardChanges: (seriesId?: string) => void
 }
 
@@ -155,7 +156,8 @@ export const useStore = create<StoreState>()((set, get) => {
           products: productsOfSeries,
           createdAt: s.created_at,
           lastPublished: s.last_published_at,
-          isDirty: !s.is_published // If not published, effectively dirty/draft
+          isDirty: !s.is_published, // If not published, effectively dirty/draft
+          isPublished: s.is_published
         }
       })
 
@@ -204,7 +206,8 @@ export const useStore = create<StoreState>()((set, get) => {
         products: [],
         createdAt: new Date().toISOString(),
         lastPublished: null,
-        isDirty: true
+        isDirty: true,
+        isPublished: false
       }
 
       set({ isSyncing: true })
@@ -252,7 +255,7 @@ export const useStore = create<StoreState>()((set, get) => {
 
         set((state) => ({
           draftSeries: state.draftSeries.map(s =>
-            s.id === id ? { ...s, title, description, coverImage: uploadedCover, isDirty: true } : s
+            s.id === id ? { ...s, title, description, coverImage: uploadedCover, isDirty: true, isPublished: false } : s
           ),
           isSyncing: false
         }))
@@ -266,8 +269,25 @@ export const useStore = create<StoreState>()((set, get) => {
     deleteSeries: async (id) => {
       set({ isSyncing: true })
       try {
+        // Collect all images from the series and its products before deletion
+        const targetSeries = get().draftSeries.find(s => s.id === id)
+        const urlsToCleanup: string[] = []
+        if (targetSeries) {
+          if (targetSeries.coverImage) urlsToCleanup.push(targetSeries.coverImage)
+          targetSeries.products.forEach(p => {
+            if (p.images) urlsToCleanup.push(...p.images)
+          })
+        }
+
         const { error } = await supabase.from('series').delete().eq('id', id)
         if (error) throw error
+
+        // 异步清理图片
+        if (urlsToCleanup.length > 0) {
+          deleteImagesFromUrls(urlsToCleanup).catch(err => 
+            console.error('[Store] Series image cleanup failed:', err)
+          )
+        }
 
         set((state) => ({
           draftSeries: state.draftSeries.filter(s => s.id !== id),
@@ -333,7 +353,7 @@ export const useStore = create<StoreState>()((set, get) => {
         set((state) => ({
           draftSeries: state.draftSeries.map(s =>
             s.id === seriesId
-              ? { ...s, isDirty: true, products: [...s.products, newProduct] }
+              ? { ...s, isDirty: true, isPublished: false, products: [...s.products, newProduct] }
               : s
           ),
           isSyncing: false
@@ -383,6 +403,7 @@ export const useStore = create<StoreState>()((set, get) => {
               ? {
                   ...s,
                   isDirty: true,
+                  isPublished: false,
                   products: s.products.map(p => p.id === productId ? updatedProduct : p)
                 }
               : s
@@ -400,6 +421,11 @@ export const useStore = create<StoreState>()((set, get) => {
     deleteProduct: async (seriesId, productId) => {
       set({ isSyncing: true })
       try {
+        // Get images to cleanup before deletion
+        const series = get().draftSeries.find(s => s.id === seriesId)
+        const product = series?.products.find(p => p.id === productId)
+        const imagesToCleanup = product?.images || []
+
         // 1. 先更新系列为未发布状态
         await supabase.from('series').update({ is_published: false }).eq('id', seriesId)
 
@@ -407,10 +433,17 @@ export const useStore = create<StoreState>()((set, get) => {
         const { error } = await supabase.from('products').delete().eq('id', productId)
         if (error) throw error
 
+        // 3. 异步清理图片
+        if (imagesToCleanup.length > 0) {
+          deleteImagesFromUrls(imagesToCleanup).catch(err => 
+            console.error('[Store] Product image cleanup failed:', err)
+          )
+        }
+
         set((state) => ({
           draftSeries: state.draftSeries.map(s =>
             s.id === seriesId
-              ? { ...s, isDirty: true, products: s.products.filter(p => p.id !== productId) }
+              ? { ...s, isDirty: true, isPublished: false, products: s.products.filter(p => p.id !== productId) }
               : s
           ),
           isSyncing: false
@@ -426,7 +459,7 @@ export const useStore = create<StoreState>()((set, get) => {
       // 1. 乐观更新本地状态
       set((state) => ({
         draftSeries: state.draftSeries.map(s =>
-          s.id === seriesId ? { ...s, products: newProducts, isDirty: true } : s
+          s.id === seriesId ? { ...s, products: newProducts, isDirty: true, isPublished: false } : s
         )
       }))
 
@@ -521,7 +554,7 @@ export const useStore = create<StoreState>()((set, get) => {
           const targetSeries = state.draftSeries.find(s => s.id === seriesId)
           if (!targetSeries) return false
 
-          const updatedSeries = { ...targetSeries, isDirty: false, lastPublished: now }
+          const updatedSeries = { ...targetSeries, isDirty: false, isPublished: true, lastPublished: now }
 
           set({
             draftSeries: state.draftSeries.map(s => s.id === seriesId ? updatedSeries : s),
@@ -562,7 +595,7 @@ export const useStore = create<StoreState>()((set, get) => {
           if (!result.success) throw new Error(result.message)
 
           const now = result.lastPublished || new Date().toISOString()
-          const updatedDraftSeries = state.draftSeries.map(s => ({ ...s, isDirty: false, lastPublished: now }))
+          const updatedDraftSeries = state.draftSeries.map(s => ({ ...s, isDirty: false, isPublished: true, lastPublished: now }))
 
           set({
             draftSeries: updatedDraftSeries,
@@ -576,6 +609,24 @@ export const useStore = create<StoreState>()((set, get) => {
       } catch (err: any) {
         console.error('Publish error:', err)
         toast.error(`发布失败: ${err.message || '未知错误'}`)
+        return false
+      }
+    },
+
+    unpublish: async (seriesId) => {
+      try {
+        const result = await unpublishSeriesAction(seriesId)
+        if (!result.success) throw new Error(result.message)
+
+        set((state) => ({
+          draftSeries: state.draftSeries.map(s => 
+            s.id === seriesId ? { ...s, isPublished: false, isDirty: true } : s
+          ),
+          publishedSeries: state.publishedSeries.filter(s => s.id !== seriesId)
+        }))
+        return true
+      } catch (err: any) {
+        toast.error(`取消发布失败: ${err.message}`)
         return false
       }
     },
