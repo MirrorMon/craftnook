@@ -24,7 +24,7 @@ async function uploadIfNeeded(urlOrBase64: string): Promise<string> {
 const DEFAULT_BRAND: BrandInfo = {
   name: '手作工坊',
   logo: '',
-  description: '专注手工艺品创作，传承东方美学。每一件作品都承载着匠人的心血与温度，让传统工艺走进现代生活。',
+  description: '以手造物，以物寄心',
   authorName: '匠人'
 }
 

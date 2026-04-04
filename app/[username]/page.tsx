@@ -49,7 +49,7 @@ export default async function UserHomePage({
 
   let brand = {
     name: brandData?.name || `${profile.username} 的手作工坊`,
-    description: brandData?.description || '专注手工艺品创作，传承东方美学。',
+    description: brandData?.description || '以手造物，以物寄心',
     logo: brandData?.logo || ''
   }
 

@@ -89,16 +89,16 @@ export default function UnifiedAuthPage() {
           const { error: pErr } = await supabase
             .from('profiles')
             .insert([{ id: authData.user.id, username: cleanUsername }])
-          
+
           if (pErr) throw pErr
 
           // Create default brand
           await supabase
             .from('brand_info')
-            .insert([{ 
-              user_id: authData.user.id, 
+            .insert([{
+              user_id: authData.user.id,
               name: `${cleanUsername} 的手作工坊`,
-              description: '专注手工艺品创作，传承东方美学。',
+              description: '以手造物，以物寄心',
               logo: ''
             }])
         }
@@ -124,9 +124,9 @@ export default function UnifiedAuthPage() {
       <div className="w-full max-w-sm space-y-8 z-10">
         <div className="text-center space-y-3">
           <Link href="/" className="inline-flex items-center mb-4 group hover:opacity-80 transition-opacity">
-            <img 
-              src="/CraftNook_logo_login.png" 
-              alt="CraftNook Logo" 
+            <img
+              src="/CraftNook_logo_login.png"
+              alt="CraftNook Logo"
               className="h-22 object-contain"
             />
           </Link>
@@ -147,7 +147,7 @@ export default function UnifiedAuthPage() {
                 className="flex h-11 w-full rounded-md border border-input bg-[#EDEDED] px-4 py-2 text-base ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
               />
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">密码</label>
               <input
