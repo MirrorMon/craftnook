@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useStore } from '@/lib/store'
 import { 
   Plus, Trash2, LayoutGrid, Columns2, Image as ImageIcon, Pencil, 
-  Upload, RotateCcw, Check, Loader2, GripVertical 
+  Upload, RotateCcw, Check, Loader2, GripVertical, EyeOff 
 } from 'lucide-react'
 import {
   DndContext,
@@ -45,7 +45,7 @@ const layoutLabels: Record<LayoutType, string> = {
 }
 
 export function ProductGrid() {
-  const { draftSeries, selectedSeriesId, deleteProduct, reorderProducts, publish, discardChanges, isSyncing } = useStore()
+  const { draftSeries, selectedSeriesId, deleteProduct, reorderProducts, publish, unpublish, discardChanges, isSyncing } = useStore()
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [productToDelete, setProductToDelete] = useState<string | null>(null)
@@ -122,6 +122,15 @@ export function ProductGrid() {
           )}
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
+          {selectedSeries.isPublished && !selectedSeries.isDirty && (
+            <button
+              onClick={() => unpublish(selectedSeriesId!)}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-red-500 transition-colors px-3 py-2 rounded-md hover:bg-red-50 whitespace-nowrap"
+            >
+              <EyeOff size={16} />
+              取消发布
+            </button>
+          )}
           {(selectedSeries.isDirty || showPublishSuccess) && (
             <div className="flex items-center gap-3">
               {selectedSeries.isDirty && !showPublishSuccess && (
