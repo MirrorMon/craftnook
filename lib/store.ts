@@ -242,6 +242,9 @@ export const useStore = create<StoreState>()((set, get) => {
     updateSeries: async (id, title, description, coverImage) => {
       set({ isSyncing: true })
       try {
+        const oldSeries = get().draftSeries.find(s => s.id === id)
+        const oldCover = oldSeries?.coverImage
+
         const uploadedCover = await uploadIfNeeded(coverImage)
 
         const { error } = await supabase.from('series').update({
@@ -252,6 +255,13 @@ export const useStore = create<StoreState>()((set, get) => {
         }).eq('id', id)
 
         if (error) throw error
+
+        // Cleanup old cover if it changed
+        if (oldCover && oldCover !== uploadedCover) {
+          deleteImagesFromUrls([oldCover]).catch(err => 
+            console.error('[Store] Series cover cleanup failed:', err)
+          )
+        }
 
         set((state) => ({
           draftSeries: state.draftSeries.map(s =>
@@ -370,6 +380,10 @@ export const useStore = create<StoreState>()((set, get) => {
     updateProduct: async (seriesId, productId, title, description, images, layout) => {
       set({ isSyncing: true })
       try {
+        const series = get().draftSeries.find(s => s.id === seriesId)
+        const oldProduct = series?.products.find(p => p.id === productId)
+        const oldImages = oldProduct?.images || []
+
         const uploadedImages = await Promise.all(images.map(uploadIfNeeded))
 
         // 1. 先更新系列为未发布状态
@@ -384,6 +398,14 @@ export const useStore = create<StoreState>()((set, get) => {
         }).eq('id', productId)
 
         if (error) throw error
+
+        // 3. 清理不再需要的旧图片
+        const abandonedImages = oldImages.filter(url => !uploadedImages.includes(url))
+        if (abandonedImages.length > 0) {
+          deleteImagesFromUrls(abandonedImages).catch(err => 
+            console.error('[Store] Product images cleanup failed:', err)
+          )
+        }
 
         const existingProduct = get().draftSeries.find(s => s.id === seriesId)?.products.find(p => p.id === productId)
         const updatedProduct: Product = { 
