@@ -20,6 +20,7 @@ export interface Series {
   createdAt: string
   lastPublished: string | null
   isDirty: boolean
+  isPublished: boolean
 }
 
 export interface BrandInfo {

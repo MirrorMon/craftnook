@@ -83,7 +83,7 @@ export default async function UserHomePage({
 
       <main className="max-w-6xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-medium text-foreground">全部发布作品</h2>
+          <h2 className="text-2xl font-medium text-foreground">全部作品</h2>
           <div className="flex items-center gap-1 bg-[#F7F8F8] border border-border rounded-[4px] p-1">
             <Link
               href={`?view=grid`}
