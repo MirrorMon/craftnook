@@ -91,14 +91,14 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
           <h2 className="text-xl font-semibold text-foreground">品牌设置</h2>
           <button 
             onClick={onClose}
-            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
         
-        <div className="flex-1 overflow-y-auto">
-          <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-8">
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <form id="brand-settings-form" onSubmit={handleSubmit} className="p-6 flex flex-col gap-8">
             {/* 品牌设置分区 */}
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -122,7 +122,7 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
                       <button
                         type="button"
                         onClick={() => setLogo('')}
-                        className="absolute top-1 right-1 p-1 bg-foreground/80 text-background rounded-full hover:bg-foreground transition-colors"
+                        className="absolute top-1 right-1 h-6 w-6 flex items-center justify-center bg-foreground/80 text-background rounded-full hover:bg-foreground transition-colors"
                       >
                         <X size={12} />
                       </button>
@@ -147,7 +147,7 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
                     <button
                       type="button"
                       onClick={() => logoInputRef.current?.click()}
-                      className="px-3 py-2 text-sm border border-border rounded hover:bg-secondary transition-colors text-foreground"
+                      className="h-10 px-3 text-sm border border-border rounded hover:bg-secondary transition-colors text-foreground"
                     >
                       更换图片
                     </button>
@@ -249,7 +249,7 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
                         <button
                           type="button"
                           onClick={() => setWechatQr('')}
-                          className="absolute top-1 right-1 p-1 bg-foreground/80 text-background rounded-full hover:bg-foreground transition-colors"
+                          className="absolute top-1 right-1 h-6 w-6 flex items-center justify-center bg-foreground/80 text-background rounded-full hover:bg-foreground transition-colors"
                         >
                           <X size={12} />
                         </button>
@@ -289,7 +289,7 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
                         <button
                           type="button"
                           onClick={() => setXhsQr('')}
-                          className="absolute top-1 right-1 p-1 bg-foreground/80 text-background rounded-full hover:bg-foreground transition-colors"
+                          className="absolute top-1 right-1 h-6 w-6 flex items-center justify-center bg-foreground/80 text-background rounded-full hover:bg-foreground transition-colors"
                         >
                           <X size={12} />
                         </button>
@@ -315,23 +315,25 @@ export function BrandSettingsModal({ isOpen, onClose }: BrandSettingsModalProps)
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-5 py-2.5 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                取消
-              </button>
-              <button
-                type="submit"
-                className="px-8 py-2.5 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity font-medium shadow-sm"
-              >
-                保存设置
-              </button>
-            </div>
           </form>
+        </div>
+
+        {/* Actions（固定在弹窗底部） */}
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 px-5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            取消
+          </button>
+          <button
+            type="submit"
+            form="brand-settings-form"
+            className="h-10 px-8 text-sm bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity font-medium shadow-sm"
+          >
+            保存设置
+          </button>
         </div>
       </div>
     </div>

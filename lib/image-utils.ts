@@ -1,6 +1,13 @@
 let heic2anyPromise: Promise<any> | null = null;
 
 /**
+ * 判断文件是否可作为图片处理（按 MIME 类型或扩展名，兼容 HEIC/HEIF）
+ */
+export function isImageFile(file: File): boolean {
+  return file.type.startsWith('image/') || /\.(heic|heif)$/i.test(file.name);
+}
+
+/**
  * 预加载 heic2any 库
  */
 function getHeic2Any() {

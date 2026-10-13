@@ -5,7 +5,7 @@ import { useStore } from '@/lib/store'
 import { X, Upload, Trash2, LayoutGrid, Columns2, Image as GalleryIcon, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { LayoutType, Product } from '@/lib/types'
-import { processImageFile } from '@/lib/image-utils'
+import { processImageFile, isImageFile } from '@/lib/image-utils'
 import { SortableImageList } from './sortable-image-list'
 
 interface EditProductModalProps {
@@ -30,10 +30,11 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
     product.images.map(url => ({ id: crypto.randomUUID(), url, isProcessing: false }))
   )
   const [layout, setLayout] = useState<LayoutType>(product.layout)
+  const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const dragDepthRef = useRef(0)
 
-  const handleImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
+  const addFiles = (files: File[]) => {
     if (files.length === 0) return
 
     // Add placeholders immediately
@@ -73,9 +74,62 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
     if (files.length > 1) {
       processNext();
     }
+  }
+
+  const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addFiles(Array.from(e.target.files || []))
 
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
+    }
+  }
+
+  // 拖拽上传：进入/离开用计数器抵消子元素冒泡，避免高亮闪烁
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!e.dataTransfer.types.includes('Files')) return
+    dragDepthRef.current += 1
+    setIsDragging(true)
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer.types.includes('Files')) {
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
+    if (dragDepthRef.current === 0) {
+      setIsDragging(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragDepthRef.current = 0
+    setIsDragging(false)
+
+    const files = Array.from(e.dataTransfer.files).filter(isImageFile)
+    if (files.length === 0) {
+      toast.error('请拖拽图片文件')
+      return
+    }
+    addFiles(files)
+  }
+
+  // 弹窗打开期间拦截上传区域之外的文件拖放，避免浏览器直接打开/下载文件
+  const handleOverlayDrag = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    if (e.type === 'drop') {
+      dragDepthRef.current = 0
+      setIsDragging(false)
     }
   }
 
@@ -96,32 +150,42 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
     <div 
       className="fixed inset-0 bg-foreground/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
+      onDragOver={handleOverlayDrag}
+      onDrop={handleOverlayDrag}
     >
       <div 
         className="bg-card rounded-md shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-6 border-b border-border">
+        <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
           <h3 className="text-xl font-semibold text-foreground">编辑产品</h3>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-secondary rounded transition-colors text-muted-foreground"
+            className="h-6 w-6 flex items-center justify-center hover:bg-secondary rounded transition-colors text-muted-foreground"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-6 flex flex-col gap-5">
+        <form id="edit-product-form" onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6 flex flex-col gap-5">
           {/* Image Upload */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground">产品图片（支持多图）</label>
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-border rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-secondary/50 transition-colors"
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center cursor-pointer transition-colors ${
+                isDragging
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50 hover:bg-secondary/50'
+              }`}
             >
-              <Upload size={24} className="text-muted-foreground mb-2" />
+              <Upload size={24} className={`mb-2 ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
               <p className="text-sm text-muted-foreground text-center">
-                点击或拖拽上传图片
+                {isDragging ? '松开鼠标即可上传图片' : '点击或拖拽上传图片'}
               </p>
               <input
                 ref={fileInputRef}
@@ -199,25 +263,26 @@ export function EditProductModal({ seriesId, product, onClose }: EditProductModa
               ))}
             </div>
           </div>
-          
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 px-4 border border-border rounded hover:bg-secondary transition-colors font-medium text-foreground"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              disabled={!title.trim() || images.length === 0 || images.some(img => img.isProcessing)}
-              className="flex-1 py-3 px-4 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              保存修改
-            </button>
-          </div>
         </form>
+
+        {/* Actions（固定在弹窗底部） */}
+        <div className="flex gap-3 px-6 py-4 border-t border-border flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 h-10 px-4 text-sm border border-border rounded hover:bg-secondary transition-colors font-medium text-foreground"
+          >
+            取消
+          </button>
+          <button
+            type="submit"
+            form="edit-product-form"
+            disabled={!title.trim() || images.length === 0 || images.some(img => img.isProcessing)}
+            className="flex-1 h-10 px-4 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            保存修改
+          </button>
+        </div>
       </div>
     </div>
   )
