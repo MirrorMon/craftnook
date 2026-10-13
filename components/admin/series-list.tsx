@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useStore } from '@/lib/store'
+import { toast } from 'sonner'
 import { Plus, Trash2, Pencil, Eye } from 'lucide-react'
 import { AddSeriesModal } from './add-series-modal'
 import { EditSeriesModal } from './edit-series-modal'
@@ -13,11 +14,9 @@ function ClientDate({ date }: { date: string }) {
   const [formatted, setFormatted] = useState<string | null>(null)
 
   useEffect(() => {
-    setFormatted(new Date(date).toLocaleString('zh-CN', { 
-      month: 'numeric', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    setFormatted(new Date(date).toLocaleDateString('zh-CN', {
+      month: 'numeric',
+      day: 'numeric'
     }))
   }, [date])
 
@@ -53,7 +52,7 @@ export function SeriesList() {
                 className={`group relative p-4 rounded cursor-pointer transition-all ${
                   selectedSeriesId === s.id
                     ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-secondary'
+                    : 'hover:bg-[#F7F8F8]'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -69,77 +68,90 @@ export function SeriesList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium truncate">{s.title}</h3>
-                      {s.isDirty && (
-                        <span className="flex-shrink-0 px-1.5 py-0.5 bg-accent/20 text-accent text-[10px] rounded-full">
+                      {!s.isPublished ? (
+                        <span className={`flex-shrink-0 px-1.5 py-0.5 text-[10px] rounded-full ${
+                          selectedSeriesId === s.id
+                            ? 'bg-primary-foreground/20 text-primary-foreground'
+                            : 'bg-secondary text-muted-foreground'
+                        }`}>
                           未发布
                         </span>
-                      )}
+                      ) : s.isDirty ? (
+                        <span className="flex-shrink-0 px-1.5 py-0.5 bg-destructive/20 text-destructive text-[10px] rounded-full">
+                          修改未发布
+                        </span>
+                      ) : null}
                     </div>
-                    <div className="flex flex-col">
-                      <p className={`text-xs truncate ${
-                        selectedSeriesId === s.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                      }`}>
-                        {s.products.length} 个产品
-                      </p>
+                    <p className={`text-xs truncate ${
+                      selectedSeriesId === s.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                    }`}>
+                      {s.products.length} 个产品
+                    </p>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
                       {s.lastPublished ? (
-                        <p className={`text-[10px] truncate mt-0.5 ${
+                        <span className={`text-[10px] truncate ${
                           selectedSeriesId === s.id ? 'text-primary-foreground/50' : 'text-muted-foreground/60'
                         }`}>
                           发布于: <ClientDate date={s.lastPublished} />
-                        </p>
+                        </span>
                       ) : (
-                        <p className={`text-[10px] truncate mt-0.5 ${
+                        <span className={`text-[10px] truncate ${
                           selectedSeriesId === s.id ? 'text-primary-foreground/50' : 'text-muted-foreground/60'
                         }`}>
                           从未发布
-                        </p>
+                        </span>
                       )}
+                      <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setPreviewingSeries(s)
+                          }}
+                          title="预览系列"
+                          className={`h-6 w-6 flex items-center justify-center rounded ${
+                            selectedSeriesId === s.id 
+                              ? 'hover:bg-primary-foreground/20 text-primary-foreground' 
+                              : 'hover:bg-[rgba(175,175,175,0.1)] text-muted-foreground'
+                          }`}
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingSeries(s)
+                          }}
+                          title="编辑系列"
+                          className={`h-6 w-6 flex items-center justify-center rounded ${
+                            selectedSeriesId === s.id 
+                              ? 'hover:bg-primary-foreground/20 text-primary-foreground' 
+                              : 'hover:bg-[rgba(175,175,175,0.1)] text-muted-foreground'
+                          }`}
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            // 在线系列必须先下线（前台可见性只由"发布/下线"改变）
+                            if (s.isPublished) {
+                              toast.error('该系列当前在线：请先点"取消发布"，再删除')
+                              return
+                            }
+                            setSeriesToDelete(s.id)
+                          }}
+                          title="删除系列"
+                          className={`h-6 w-6 flex items-center justify-center rounded ${
+                            selectedSeriesId === s.id 
+                              ? 'hover:bg-primary-foreground/20 text-primary-foreground' 
+                              : 'hover:bg-[rgba(175,175,175,0.1)] text-destructive'
+                          }`}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setPreviewingSeries(s)
-                    }}
-                    title="预览系列"
-                    className={`p-1 rounded ${
-                      selectedSeriesId === s.id 
-                        ? 'hover:bg-primary-foreground/20 text-primary-foreground' 
-                        : 'hover:bg-secondary text-muted-foreground'
-                    }`}
-                  >
-                    <Eye size={14} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setEditingSeries(s)
-                    }}
-                    title="编辑系列"
-                    className={`p-1 rounded ${
-                      selectedSeriesId === s.id 
-                        ? 'hover:bg-primary-foreground/20 text-primary-foreground' 
-                        : 'hover:bg-secondary text-muted-foreground'
-                    }`}
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSeriesToDelete(s.id)
-                    }}
-                    title="删除系列"
-                    className={`p-1 rounded ${
-                      selectedSeriesId === s.id 
-                        ? 'hover:bg-primary-foreground/20 text-primary-foreground' 
-                        : 'hover:bg-destructive/10 text-destructive'
-                    }`}
-                  >
-                    <Trash2 size={14} />
-                  </button>
                 </div>
               </div>
             ))}
@@ -150,7 +162,7 @@ export function SeriesList() {
       <div className="p-4 border-t border-border">
         <button
           onClick={() => setShowModal(true)}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors font-medium"
+          className="w-full flex items-center justify-center gap-2 h-10 px-4 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors font-medium"
         >
           <Plus size={18} />
           新增系列

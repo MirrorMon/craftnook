@@ -51,6 +51,7 @@ export function ProductGrid() {
   const [productToDelete, setProductToDelete] = useState<string | null>(null)
   const [isPublishing, setIsPublishing] = useState(false)
   const [showPublishSuccess, setShowPublishSuccess] = useState(false)
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
 
   const selectedSeries = draftSeries.find(s => s.id === selectedSeriesId)
 
@@ -98,9 +99,7 @@ export function ProductGrid() {
   }
   
   const handleDiscard = () => {
-    if (selectedSeriesId) {
-      discardChanges(selectedSeriesId)
-    }
+    setShowDiscardConfirm(true)
   }
   
   if (!selectedSeries) {
@@ -125,29 +124,29 @@ export function ProductGrid() {
           {selectedSeries.isPublished && !selectedSeries.isDirty && (
             <button
               onClick={() => unpublish(selectedSeriesId!)}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-red-500 transition-colors px-3 py-2 rounded-md hover:bg-red-50 whitespace-nowrap"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors px-3 h-10 rounded-md hover:bg-destructive/10 whitespace-nowrap"
             >
               <EyeOff size={16} />
               取消发布
             </button>
           )}
-          {(selectedSeries.isDirty || showPublishSuccess) && (
+          {(selectedSeries.isDirty || showPublishSuccess || !selectedSeries.isPublished) && (
             <div className="flex items-center gap-3">
-              {selectedSeries.isDirty && !showPublishSuccess && (
+              {selectedSeries.isDirty && selectedSeries.hasSnapshot && !showPublishSuccess && (
                 <button
                   onClick={handleDiscard}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-md hover:bg-secondary whitespace-nowrap"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 h-10 rounded-md hover:bg-secondary whitespace-nowrap"
                 >
                   <RotateCcw size={16} />
-                  放弃
+                  撤销修改
                 </button>
               )}
               <button
                 onClick={handlePublish}
-                disabled={(!selectedSeries.isDirty && !showPublishSuccess) || isPublishing || isSyncing}
-                className={`flex items-center gap-2 text-sm px-4 py-2 rounded-md font-medium transition-all whitespace-nowrap ${
+                disabled={(!selectedSeries.isDirty && selectedSeries.isPublished && !showPublishSuccess) || isPublishing || isSyncing}
+                className={`flex items-center gap-2 text-sm px-4 h-10 rounded-md font-medium transition-all whitespace-nowrap ${
                   showPublishSuccess
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-success text-success-foreground'
                     : (isPublishing || isSyncing)
                     ? 'bg-accent/50 text-accent-foreground cursor-not-allowed'
                     : 'bg-accent text-accent-foreground hover:bg-accent/90'
@@ -174,10 +173,10 @@ export function ProductGrid() {
           )}
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 py-2 px-4 bg-primary text-primary-foreground rounded-[4px] hover:bg-primary/90 transition-colors font-medium whitespace-nowrap"
+            className="flex items-center gap-2 h-10 px-4 text-sm bg-primary text-primary-foreground rounded-[4px] hover:bg-primary/90 transition-colors font-medium whitespace-nowrap"
           >
             <Plus size={18} />
-            添加产品
+            新增产品
           </button>
         </div>
       </div>
@@ -232,12 +231,25 @@ export function ProductGrid() {
       {productToDelete && (
         <ConfirmModal
           title="删除产品"
-          description={`确定要删除“${selectedSeries?.products.find(p => p.id === productToDelete)?.title}”吗？此操作不可撤销。`}
+          description={`确定要删除“${selectedSeries?.products.find(p => p.id === productToDelete)?.title}”吗？删除后需要发布，才会从你的前台页面移除。`}
           onConfirm={() => {
             deleteProduct(selectedSeriesId!, productToDelete)
             setProductToDelete(null)
           }}
           onClose={() => setProductToDelete(null)}
+        />
+      )}
+
+      {showDiscardConfirm && (
+        <ConfirmModal
+          title="撤销修改"
+          description="将把后台内容还原为当前前台展示的版本。此操作不可撤销。"
+          confirmText="确认撤销"
+          variant="warning"
+          onConfirm={() => {
+            if (selectedSeriesId) discardChanges(selectedSeriesId)
+          }}
+          onClose={() => setShowDiscardConfirm(false)}
         />
       )}
     </div>
@@ -319,7 +331,7 @@ function SortableProductCard({
             e.stopPropagation()
             onEdit()
           }}
-          className="p-2 bg-card/80 backdrop-blur-sm rounded hover:bg-primary hover:text-primary-foreground text-muted-foreground transition-colors"
+          className="h-6 w-6 flex items-center justify-center bg-card/80 backdrop-blur-sm rounded hover:bg-primary hover:text-primary-foreground text-muted-foreground transition-colors"
         >
           <Pencil size={16} />
         </button>
@@ -328,7 +340,7 @@ function SortableProductCard({
             e.stopPropagation()
             onDelete()
           }}
-          className="p-2 bg-card/80 backdrop-blur-sm rounded hover:bg-destructive hover:text-destructive-foreground text-muted-foreground transition-colors"
+          className="h-6 w-6 flex items-center justify-center bg-card/80 backdrop-blur-sm rounded hover:bg-destructive hover:text-destructive-foreground text-muted-foreground transition-colors"
         >
           <Trash2 size={16} />
         </button>
