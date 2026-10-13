@@ -5,7 +5,7 @@ import type { Series, LayoutType, BrandInfo, Product } from './types'
 import { createClient } from './supabase/client'
 import { uploadImage, deleteImagesFromUrls } from './supabase/storage'
 import { toast } from 'sonner'
-import { publishSeriesAction, publishAllAction, unpublishSeriesAction } from '@/app/actions/publish'
+import { publishSeriesAction, publishAllAction, unpublishSeriesAction, restoreSeriesFromSnapshotAction } from '@/app/actions/publish'
 
 async function uploadIfNeeded(urlOrBase64: string): Promise<string> {
   if (!urlOrBase64.startsWith('data:image/')) return urlOrBase64;
@@ -63,7 +63,7 @@ interface StoreState {
   // Publish action
   publish: (seriesId?: string) => Promise<boolean>
   unpublish: (seriesId: string) => Promise<boolean>
-  discardChanges: (seriesId?: string) => void
+  discardChanges: (seriesId: string) => Promise<void>
 }
 
 export const useStore = create<StoreState>()((set, get) => {
@@ -156,8 +156,9 @@ export const useStore = create<StoreState>()((set, get) => {
           products: productsOfSeries,
           createdAt: s.created_at,
           lastPublished: s.last_published_at,
-          isDirty: !s.is_published, // If not published, effectively dirty/draft
-          isPublished: s.is_published
+          isDirty: s.has_unpublished_changes, // 草稿与已发布快照不一致
+          isPublished: s.is_published,
+          hasSnapshot: s.published_snapshot != null
         }
       })
 
@@ -171,7 +172,7 @@ export const useStore = create<StoreState>()((set, get) => {
         username,
         isInitialized: true,
         draftSeries: parsedSeries,
-        publishedSeries: parsedSeries.filter(s => !s.isDirty),
+        publishedSeries: parsedSeries.filter(s => s.isPublished),
         draftBrand: brand,
         publishedBrand: brand,
         selectedSeriesId: newSelectedId,
@@ -207,7 +208,8 @@ export const useStore = create<StoreState>()((set, get) => {
         createdAt: new Date().toISOString(),
         lastPublished: null,
         isDirty: true,
-        isPublished: false
+        isPublished: false,
+        hasSnapshot: false
       }
 
       set({ isSyncing: true })
@@ -221,7 +223,8 @@ export const useStore = create<StoreState>()((set, get) => {
           title,
           description,
           cover_image: uploadedCover,
-          is_published: false
+          is_published: false,
+          has_unpublished_changes: true
         })
         console.time('addSeries')
         if (error) throw error
@@ -242,30 +245,21 @@ export const useStore = create<StoreState>()((set, get) => {
     updateSeries: async (id, title, description, coverImage) => {
       set({ isSyncing: true })
       try {
-        const oldSeries = get().draftSeries.find(s => s.id === id)
-        const oldCover = oldSeries?.coverImage
-
         const uploadedCover = await uploadIfNeeded(coverImage)
 
+        // 编辑只更新"工作副本"并标记为有未发布修改；不改变 is_published，也不立即删除旧封面图片
         const { error } = await supabase.from('series').update({
           title,
           description,
           cover_image: uploadedCover,
-          is_published: false
+          has_unpublished_changes: true
         }).eq('id', id)
 
         if (error) throw error
 
-        // Cleanup old cover if it changed
-        if (oldCover && oldCover !== uploadedCover) {
-          deleteImagesFromUrls([oldCover]).catch(err => 
-            console.error('[Store] Series cover cleanup failed:', err)
-          )
-        }
-
         set((state) => ({
           draftSeries: state.draftSeries.map(s =>
-            s.id === id ? { ...s, title, description, coverImage: uploadedCover, isDirty: true, isPublished: false } : s
+            s.id === id ? { ...s, title, description, coverImage: uploadedCover, isDirty: true } : s
           ),
           isSyncing: false
         }))
@@ -277,10 +271,16 @@ export const useStore = create<StoreState>()((set, get) => {
     },
 
     deleteSeries: async (id) => {
+      const targetSeries = get().draftSeries.find(s => s.id === id)
+      // 在线系列必须先下线：前台可见性只由"发布/下线"改变
+      if (targetSeries?.isPublished) {
+        toast.error('该系列当前在线：请先点"取消发布"，再删除')
+        return
+      }
+
       set({ isSyncing: true })
       try {
         // Collect all images from the series and its products before deletion
-        const targetSeries = get().draftSeries.find(s => s.id === id)
         const urlsToCleanup: string[] = []
         if (targetSeries) {
           if (targetSeries.coverImage) urlsToCleanup.push(targetSeries.coverImage)
@@ -325,8 +325,8 @@ export const useStore = create<StoreState>()((set, get) => {
         const uploadedImages = await Promise.all(images.map(uploadIfNeeded))
         console.log('[Store] Images uploaded:', uploadedImages.length)
 
-        // 1. 先更新系列为未发布状态
-        await supabase.from('series').update({ is_published: false }).eq('id', seriesId)
+        // 1. 标记系列有未发布修改（不改变 is_published，前台不受影响）
+        await supabase.from('series').update({ has_unpublished_changes: true }).eq('id', seriesId)
 
         const currentProducts = state.draftSeries.find(s => s.id === seriesId)?.products || []
         const position = currentProducts.length
@@ -363,7 +363,7 @@ export const useStore = create<StoreState>()((set, get) => {
         set((state) => ({
           draftSeries: state.draftSeries.map(s =>
             s.id === seriesId
-              ? { ...s, isDirty: true, isPublished: false, products: [...s.products, newProduct] }
+              ? { ...s, isDirty: true, products: [...s.products, newProduct] }
               : s
           ),
           isSyncing: false
@@ -380,14 +380,10 @@ export const useStore = create<StoreState>()((set, get) => {
     updateProduct: async (seriesId, productId, title, description, images, layout) => {
       set({ isSyncing: true })
       try {
-        const series = get().draftSeries.find(s => s.id === seriesId)
-        const oldProduct = series?.products.find(p => p.id === productId)
-        const oldImages = oldProduct?.images || []
-
         const uploadedImages = await Promise.all(images.map(uploadIfNeeded))
 
-        // 1. 先更新系列为未发布状态
-        await supabase.from('series').update({ is_published: false }).eq('id', seriesId)
+        // 1. 标记系列有未发布修改（不改变 is_published，前台不受影响）
+        await supabase.from('series').update({ has_unpublished_changes: true }).eq('id', seriesId)
 
         // 2. 更新产品
         const { error } = await supabase.from('products').update({
@@ -399,13 +395,7 @@ export const useStore = create<StoreState>()((set, get) => {
 
         if (error) throw error
 
-        // 3. 清理不再需要的旧图片
-        const abandonedImages = oldImages.filter(url => !uploadedImages.includes(url))
-        if (abandonedImages.length > 0) {
-          deleteImagesFromUrls(abandonedImages).catch(err => 
-            console.error('[Store] Product images cleanup failed:', err)
-          )
-        }
+        // 旧图片不在这里删除：前台可能仍展示旧版本，图片清理统一在"发布"后进行
 
         const existingProduct = get().draftSeries.find(s => s.id === seriesId)?.products.find(p => p.id === productId)
         const updatedProduct: Product = { 
@@ -425,7 +415,6 @@ export const useStore = create<StoreState>()((set, get) => {
               ? {
                   ...s,
                   isDirty: true,
-                  isPublished: false,
                   products: s.products.map(p => p.id === productId ? updatedProduct : p)
                 }
               : s
@@ -443,29 +432,19 @@ export const useStore = create<StoreState>()((set, get) => {
     deleteProduct: async (seriesId, productId) => {
       set({ isSyncing: true })
       try {
-        // Get images to cleanup before deletion
-        const series = get().draftSeries.find(s => s.id === seriesId)
-        const product = series?.products.find(p => p.id === productId)
-        const imagesToCleanup = product?.images || []
-
-        // 1. 先更新系列为未发布状态
-        await supabase.from('series').update({ is_published: false }).eq('id', seriesId)
+        // 1. 标记系列有未发布修改（不改变 is_published，前台不受影响）
+        await supabase.from('series').update({ has_unpublished_changes: true }).eq('id', seriesId)
 
         // 2. 删除产品
         const { error } = await supabase.from('products').delete().eq('id', productId)
         if (error) throw error
 
-        // 3. 异步清理图片
-        if (imagesToCleanup.length > 0) {
-          deleteImagesFromUrls(imagesToCleanup).catch(err => 
-            console.error('[Store] Product image cleanup failed:', err)
-          )
-        }
+        // 图片不在这里删除：如果该产品此前已发布，前台快照里仍在展示它，统一在"发布"后再清理
 
         set((state) => ({
           draftSeries: state.draftSeries.map(s =>
             s.id === seriesId
-              ? { ...s, isDirty: true, isPublished: false, products: s.products.filter(p => p.id !== productId) }
+              ? { ...s, isDirty: true, products: s.products.filter(p => p.id !== productId) }
               : s
           ),
           isSyncing: false
@@ -481,13 +460,13 @@ export const useStore = create<StoreState>()((set, get) => {
       // 1. 乐观更新本地状态
       set((state) => ({
         draftSeries: state.draftSeries.map(s =>
-          s.id === seriesId ? { ...s, products: newProducts, isDirty: true, isPublished: false } : s
+          s.id === seriesId ? { ...s, products: newProducts, isDirty: true } : s
         )
       }))
 
       try {
-        // 2. 先更新系列为未发布状态
-        await supabase.from('series').update({ is_published: false }).eq('id', seriesId)
+        // 2. 标记系列有未发布修改（不改变 is_published，前台不受影响）
+        await supabase.from('series').update({ has_unpublished_changes: true }).eq('id', seriesId)
 
         // 3. 批量更新产品位置
         // 改用 update 以获得更好的 RLS 兼容性
@@ -571,12 +550,19 @@ export const useStore = create<StoreState>()((set, get) => {
             throw new Error(result.message)
           }
 
-          // 2. 成功后更新本地 Zustand 状态
+          // 2. 旧快照里不再被引用的图片，发布成功后再清理（避免前台裂图）
+          if (result.staleImages && result.staleImages.length > 0) {
+            deleteImagesFromUrls(result.staleImages).catch(err =>
+              console.error('[Store] Stale image cleanup failed:', err)
+            )
+          }
+
+          // 3. 成功后更新本地 Zustand 状态
           const now = result.lastPublished || new Date().toISOString()
           const targetSeries = state.draftSeries.find(s => s.id === seriesId)
           if (!targetSeries) return false
 
-          const updatedSeries = { ...targetSeries, isDirty: false, isPublished: true, lastPublished: now }
+          const updatedSeries = { ...targetSeries, isDirty: false, isPublished: true, hasSnapshot: true, lastPublished: now }
 
           set({
             draftSeries: state.draftSeries.map(s => s.id === seriesId ? updatedSeries : s),
@@ -642,7 +628,7 @@ export const useStore = create<StoreState>()((set, get) => {
 
         set((state) => ({
           draftSeries: state.draftSeries.map(s => 
-            s.id === seriesId ? { ...s, isPublished: false, isDirty: true } : s
+            s.id === seriesId ? { ...s, isPublished: false } : s
           ),
           publishedSeries: state.publishedSeries.filter(s => s.id !== seriesId)
         }))
@@ -653,25 +639,61 @@ export const useStore = create<StoreState>()((set, get) => {
       }
     },
 
-    discardChanges: (seriesId) => set((state) => {
-      if (seriesId) {
-        const originalSeries = state.publishedSeries.find(s => s.id === seriesId)
-        if (!originalSeries) {
-          return {
-            draftSeries: state.draftSeries.filter(s => s.id !== seriesId),
-            selectedSeriesId: state.selectedSeriesId === seriesId ? null : state.selectedSeriesId
-          }
+    discardChanges: async (seriesId) => {
+      set({ isSyncing: true })
+      try {
+        const result = await restoreSeriesFromSnapshotAction(seriesId)
+        if (!result.success) throw new Error(result.message)
+
+        // 还原成功后，从数据库重新读取该系列与产品，刷新本地状态
+        const { data: sRow } = await supabase
+          .from('series')
+          .select('*')
+          .eq('id', seriesId)
+          .single()
+        if (!sRow) throw new Error('刷新数据失败')
+
+        const { data: pRows } = await supabase
+          .from('products')
+          .select('*')
+          .eq('series_id', seriesId)
+          .order('position', { ascending: true })
+          .order('created_at', { ascending: true })
+
+        const products: Product[] = (pRows || []).map(p => ({
+          id: p.id,
+          title: p.title,
+          description: p.description || '',
+          images: p.images || [],
+          layout: p.layout as LayoutType,
+          seriesId,
+          position: p.position ?? undefined,
+          createdAt: p.created_at
+        }))
+
+        const restored: Series = {
+          id: sRow.id,
+          title: sRow.title,
+          description: sRow.description || '',
+          coverImage: sRow.cover_image || '',
+          products,
+          createdAt: sRow.created_at,
+          lastPublished: sRow.last_published_at,
+          isDirty: sRow.has_unpublished_changes,
+          isPublished: sRow.is_published,
+          hasSnapshot: sRow.published_snapshot != null
         }
-        return {
-          draftSeries: state.draftSeries.map(s => s.id === seriesId ? JSON.parse(JSON.stringify(originalSeries)) : s)
-        }
-      } else {
-        return {
-          draftSeries: JSON.parse(JSON.stringify(state.publishedSeries)),
-          draftBrand: { ...state.publishedBrand },
-          isBrandDirty: false
-        }
+
+        set((state) => ({
+          draftSeries: state.draftSeries.map(s => s.id === seriesId ? restored : s),
+          isSyncing: false
+        }))
+        toast.success('已还原为前台当前显示的版本')
+      } catch (err: any) {
+        set({ isSyncing: false })
+        console.error('Error discarding changes:', err)
+        toast.error(`还原失败: ${err.message}`)
       }
-    })
+    }
   }
 })

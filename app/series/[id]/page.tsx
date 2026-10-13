@@ -10,37 +10,34 @@ export default async function SeriesDetailPage({ params }: { params: Promise<{ i
   const { id } = await params
   const supabase = await createClient()
 
-  // Fetch the series details with owner profile
-  const { data: currentSeries } = await supabase
+  // 前台只展示"已发布快照"：行必须在线（is_published）且存在快照；
+  // 对所有人（包括作者本人）行为一致，编辑中的内容不会出现在前台。
+  const { data: seriesRow } = await supabase
     .from('series')
-    .select('*, products(*), profiles(id, username)')
+    .select('id, user_id, is_published, published_snapshot, profiles(id, username)')
     .eq('id', id)
-    .order('position', { foreignTable: 'products', ascending: true })
     .single()
-  
-  if (!currentSeries || (!currentSeries.is_published && typeof window === 'undefined')) {
-    // Note: in a real production app we'd want to auth check if the user is the owner to see drafts.
-    // For now we assume if it's hit on the frontend by a public user, they must only see published.
-    // But since RLS is in place, if is_published is false and they aren't the owner, query returns null.
-    
-    // If we did get data back but it's null
-    if (!currentSeries) {
-      return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-muted-foreground text-lg mb-4">系列不存在或尚未发布</p>
-            <Link href="/" className="text-accent hover:underline">返回首页</Link>
-          </div>
+
+  const snapshot: any = (seriesRow as any)?.published_snapshot
+
+  if (!seriesRow || !seriesRow.is_published || !snapshot) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground text-lg mb-4">系列不存在或尚未发布</p>
+          <Link href="/" className="text-accent hover:underline">返回首页</Link>
         </div>
-      )
-    }
+      </div>
+    )
   }
+
+  const snapshotProducts: any[] = Array.isArray(snapshot.products) ? snapshot.products : []
 
   // Fetch brand/author info
   const { data: brandData } = await supabase
     .from('brand_info')
     .select('*')
-    .eq('user_id', currentSeries.user_id)
+    .eq('user_id', (seriesRow as any).user_id)
     .single()
 
   const brand = brandData ? {
@@ -56,10 +53,10 @@ export default async function SeriesDetailPage({ params }: { params: Promise<{ i
     authorXhsQr: brandData.author_xhs_qr || '',
     authorCustomText: brandData.author_custom_text || ''
   } : {
-    name: currentSeries.profiles?.username || '手作工坊',
+    name: (seriesRow as any).profiles?.username || '手作工坊',
     logo: '',
     description: '',
-    authorName: currentSeries.profiles?.username || '匠人',
+    authorName: (seriesRow as any).profiles?.username || '匠人',
     authorBio: '',
     authorEmail: '',
     authorWechatId: '',
@@ -75,7 +72,7 @@ export default async function SeriesDetailPage({ params }: { params: Promise<{ i
       <header className="border-b border-border w-full">
         <div className="max-w-6xl mx-auto px-6 py-6">
           <Link 
-            href={currentSeries.profiles?.username ? `/${currentSeries.profiles.username}` : "/"}
+            href={(seriesRow as any).profiles?.username ? `/${(seriesRow as any).profiles.username}` : "/"}
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
           >
             <ArrowLeft size={18} />
@@ -83,22 +80,22 @@ export default async function SeriesDetailPage({ params }: { params: Promise<{ i
           </Link>
           
           <div className="flex flex-col md:flex-row md:items-end gap-6">
-            {currentSeries.cover_image && (
+            {snapshot.cover_image && (
               <div className="w-24 h-24 rounded overflow-hidden flex-shrink-0">
                 <img 
-                  src={currentSeries.cover_image} 
-                  alt={currentSeries.title}
+                  src={snapshot.cover_image} 
+                  alt={snapshot.title}
                   className="w-full h-full object-cover"
                 />
               </div>
             )}
             <div>
               <h1 className="text-4xl font-semibold tracking-tight text-foreground">
-                {currentSeries.title}
+                {snapshot.title}
               </h1>
-              {currentSeries.description && (
+              {snapshot.description && (
                 <p className="text-muted-foreground mt-2 text-lg max-w-2xl">
-                  {currentSeries.description}
+                  {snapshot.description}
                 </p>
               )}
             </div>
@@ -108,20 +105,30 @@ export default async function SeriesDetailPage({ params }: { params: Promise<{ i
 
       {/* Products */}
       <main className="max-w-6xl mx-auto px-6 py-12">
-        {!currentSeries.products || currentSeries.products.length === 0 ? (
+        {snapshotProducts.length === 0 ? (
           <div className="text-center py-24">
             <p className="text-muted-foreground text-lg">该系列暂无产品</p>
           </div>
         ) : (
           <div className="flex flex-col gap-20">
-            {currentSeries.products.map((product: any, index: number) => (
-              <ProductDisplay key={product.id} product={product} index={index} />
+            {snapshotProducts.map((product: any, index: number) => (
+              <ProductDisplay
+                key={product.id || index}
+                product={{
+                  id: product.id,
+                  title: product.title,
+                  description: product.description || '',
+                  images: product.images || [],
+                  layout: (product.layout || 'large') as 'large' | 'double' | 'gallery'
+                }}
+                index={index}
+              />
             ))}
           </div>
         )}
       </main>
 
-      <InquiryWidget seriesTitle={currentSeries.title} brand={brand} />
+      <InquiryWidget seriesTitle={snapshot.title} brand={brand} />
     </div>
   )
 }

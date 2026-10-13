@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { LayoutGrid, List, Settings } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
+import { InquiryWidget } from '@/components/series/inquiry-widget'
 
 export const revalidate = 0 // Disable cache for now to ensure fresh data
 export const dynamic = 'force-dynamic'
@@ -32,13 +33,23 @@ export default async function UserHomePage({
 
   const userId = profile.id
 
-  // Fetch only this user's published series
+  // 前台只展示"已发布快照"：行必须在线（is_published），内容全部来自 published_snapshot
   const { data: seriesData } = await supabase
     .from('series')
-    .select('*, products(id)')
+    .select('id, last_published_at, published_snapshot')
     .eq('user_id', userId)
     .eq('is_published', true)
     .order('last_published_at', { ascending: false })
+
+  const seriesCards = (seriesData || [])
+    .filter((s: any) => s.published_snapshot)
+    .map((s: any) => ({
+      id: s.id as string,
+      title: (s.published_snapshot.title as string) || '',
+      description: (s.published_snapshot.description as string) || '',
+      coverImage: (s.published_snapshot.cover_image as string) || '',
+      productCount: Array.isArray(s.published_snapshot.products) ? s.published_snapshot.products.length : 0
+    }))
 
   // Fetch this user's brand
   const { data: brandData } = await supabase
@@ -47,10 +58,30 @@ export default async function UserHomePage({
     .eq('user_id', userId)
     .single()
 
-  let brand = {
-    name: brandData?.name || `${profile.username} 的手作工坊`,
-    description: brandData?.description || '以手造物，以物寄心',
-    logo: brandData?.logo || ''
+  const brand = brandData ? {
+    name: brandData.name,
+    logo: brandData.logo || '',
+    description: brandData.description || '以手造物，以物寄心',
+    authorName: brandData.author_name || brandData.name,
+    authorBio: brandData.author_bio || '',
+    authorEmail: brandData.author_email || '',
+    authorWechatId: brandData.author_wechat_id || '',
+    authorWechatQr: brandData.author_wechat_qr || '',
+    authorXhsId: brandData.author_xhs_id || '',
+    authorXhsQr: brandData.author_xhs_qr || '',
+    authorCustomText: brandData.author_custom_text || ''
+  } : {
+    name: `${profile.username} 的手作工坊`,
+    logo: '',
+    description: '以手造物，以物寄心',
+    authorName: profile.username,
+    authorBio: '',
+    authorEmail: '',
+    authorWechatId: '',
+    authorWechatQr: '',
+    authorXhsId: '',
+    authorXhsQr: '',
+    authorCustomText: ''
   }
 
   return (
@@ -110,19 +141,19 @@ export default async function UserHomePage({
 
         </div>
 
-        {!seriesData || seriesData.length === 0 ? (
+        {seriesCards.length === 0 ? (
           <div className="text-center py-24">
             <p className="text-muted-foreground text-lg">暂无公开产品系列</p>
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {seriesData.map((s) => (
+            {seriesCards.map((s) => (
               <SeriesCard key={s.id} series={s} username={profile.username} />
             ))}
           </div>
         ) : (
           <div className="flex flex-col gap-6">
-            {seriesData.map((s) => (
+            {seriesCards.map((s) => (
               <SeriesListItem key={s.id} series={s} username={profile.username} />
             ))}
           </div>
@@ -135,18 +166,28 @@ export default async function UserHomePage({
           <p>Powered by CraftNook</p>
         </div>
       </footer>
+
+      <InquiryWidget seriesTitle={brand.name} brand={brand} />
     </div>
   )
 }
 
-function SeriesCard({ series, username }: { series: any, username: string }) {
-  const productCount = series.products ? series.products.length : 0
+type SeriesCardModel = {
+  id: string
+  title: string
+  description: string
+  coverImage: string
+  productCount: number
+}
+
+function SeriesCard({ series, username }: { series: SeriesCardModel, username: string }) {
+  const productCount = series.productCount
   return (
     <Link href={`/series/${series.id}`} className="group block">
       <div className="aspect-[4/5] rounded overflow-hidden bg-muted mb-4">
-        {series.cover_image ? (
+        {series.coverImage ? (
           <img 
-            src={series.cover_image} 
+            src={series.coverImage} 
             alt={series.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
@@ -167,8 +208,8 @@ function SeriesCard({ series, username }: { series: any, username: string }) {
   )
 }
 
-function SeriesListItem({ series, username }: { series: any, username: string }) {
-  const productCount = series.products ? series.products.length : 0
+function SeriesListItem({ series, username }: { series: SeriesCardModel, username: string }) {
+  const productCount = series.productCount
   return (
     <Link 
       href={`/series/${series.id}`} 
@@ -176,9 +217,9 @@ function SeriesListItem({ series, username }: { series: any, username: string })
     >
 
       <div className="w-32 h-32 flex-shrink-0 rounded overflow-hidden bg-muted">
-        {series.cover_image ? (
+        {series.coverImage ? (
           <img 
-            src={series.cover_image} 
+            src={series.coverImage} 
             alt={series.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />

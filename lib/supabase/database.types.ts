@@ -169,9 +169,11 @@ export type Database = {
           cover_image: string | null
           created_at: string
           description: string | null
+          has_unpublished_changes: boolean
           id: string
           is_published: boolean
           last_published_at: string | null
+          published_snapshot: Json | null
           title: string
           user_id: string
         }
@@ -179,9 +181,11 @@ export type Database = {
           cover_image?: string | null
           created_at?: string
           description?: string | null
+          has_unpublished_changes?: boolean
           id?: string
           is_published?: boolean
           last_published_at?: string | null
+          published_snapshot?: Json | null
           title: string
           user_id: string
         }
@@ -189,9 +193,11 @@ export type Database = {
           cover_image?: string | null
           created_at?: string
           description?: string | null
+          has_unpublished_changes?: boolean
           id?: string
           is_published?: boolean
           last_published_at?: string | null
+          published_snapshot?: Json | null
           title?: string
           user_id?: string
         }
