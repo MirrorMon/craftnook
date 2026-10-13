@@ -80,7 +80,7 @@ function SortableImageItem({ id, url, isProcessing, index, onRemove }: SortableI
               e.stopPropagation()
               onRemove(index)
             }}
-            className="absolute top-2 right-2 p-1.5 bg-background/90 hover:bg-destructive text-foreground hover:text-destructive-foreground rounded-md opacity-0 group-hover:opacity-100 transition-all z-30 shadow-sm backdrop-blur-sm"
+            className="absolute top-2 right-2 h-6 w-6 flex items-center justify-center bg-background/90 hover:bg-destructive text-foreground hover:text-destructive-foreground rounded-md opacity-0 group-hover:opacity-100 transition-all z-30 shadow-sm backdrop-blur-sm"
             aria-label="删除图片"
           >
             <Trash2 size={16} />

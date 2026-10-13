@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Cormorant_Garamond } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({ 
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className={`${cormorant.variable} font-serif antialiased overflow-x-hidden w-full`}>
         {children}
+        <Toaster richColors position="top-center" />
         <Analytics />
       </body>
     </html>

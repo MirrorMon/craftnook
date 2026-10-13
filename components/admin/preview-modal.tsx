@@ -17,10 +17,10 @@ export function PreviewModal({ series, onClose }: PreviewModalProps) {
         <div className="flex items-center gap-4">
           <button 
             onClick={onClose}
-            className="p-2 hover:bg-secondary rounded-full transition-colors"
+            className="h-6 w-6 flex items-center justify-center hover:bg-secondary rounded-full transition-colors"
             title="关闭预览"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
           <span className="text-sm font-medium text-muted-foreground border-l border-border pl-4">
             预览模式：{series.title}
@@ -28,7 +28,7 @@ export function PreviewModal({ series, onClose }: PreviewModalProps) {
         </div>
         <button
           onClick={onClose}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors text-sm font-medium"
+          className="h-10 px-4 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors text-sm font-medium"
         >
           返回管理界面
         </button>

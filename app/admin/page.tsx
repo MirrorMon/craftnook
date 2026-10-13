@@ -60,9 +60,9 @@ export default function AdminPage() {
                 <h1 className="text-xl font-semibold tracking-tight text-foreground">{draftBrand.name}</h1>
                 <button
                   onClick={() => setShowBrandModal(true)}
-                  className="p-1.5 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-all group relative mt-0.5"
+                  className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-all group relative mt-0.5"
                 >
-                  <Settings2 size={18} />
+                  <Settings2 size={16} />
                   <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100 whitespace-nowrap pointer-events-none before:content-[''] before:absolute before:bottom-full before:left-1/2 before:-translate-x-1/2 before:border-4 before:border-transparent before:border-b-gray-900 shadow-xl z-50">
                     品牌设置
                   </span>
@@ -95,7 +95,7 @@ export default function AdminPage() {
                 <div className="bg-white border border-border shadow-xl rounded-md overflow-hidden min-w-[140px] p-1.5">
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-md transition-colors font-medium"
+                    className="w-full flex items-center gap-2.5 px-3 h-10 text-sm text-destructive hover:bg-destructive/10 rounded-md transition-colors font-medium"
                   >
                     <LogOut size={16} />
                     退出登录

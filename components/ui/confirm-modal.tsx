@@ -22,7 +22,7 @@ export function ConfirmModal({
   variant = 'danger'
 }: ConfirmModalProps) {
   const variantStyles = {
-    danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm',
+    danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm',
     warning: 'bg-yellow-500 text-white hover:bg-yellow-600',
     info: 'bg-primary text-primary-foreground hover:bg-primary/90'
   }
@@ -60,7 +60,7 @@ export function ConfirmModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 px-4 bg-background border border-border rounded-md hover:bg-secondary transition-colors font-semibold text-foreground text-sm"
+            className="flex-1 h-10 px-4 bg-background border border-border rounded-md hover:bg-secondary transition-colors font-semibold text-foreground text-sm"
           >
             {cancelText}
           </button>
@@ -70,7 +70,7 @@ export function ConfirmModal({
               onConfirm()
               onClose()
             }}
-            className={`flex-1 py-2.5 px-4 rounded-md transition-colors font-semibold text-sm shadow-sm ${variantStyles[variant]}`}
+            className={`flex-1 h-10 px-4 rounded-md transition-colors font-semibold text-sm shadow-sm ${variantStyles[variant]}`}
           >
             {confirmText}
           </button>
